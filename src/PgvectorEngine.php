@@ -55,7 +55,6 @@ class PgvectorEngine extends DatabaseEngine
             $contentHash = Uuid::uuid5(Uuid::NAMESPACE_OID, json_encode($data));
             $embeddingModel = config('pgvector-scout.model');
 
-
             // Check if we already have a vector for this model with the same hash
             $existingVector = Embedding::query()
                 ->where('embeddable_type', get_class($model))
@@ -69,9 +68,8 @@ class PgvectorEngine extends DatabaseEngine
                 return;
             }
 
-            Str::uuid();
-
-            $vector = GetOpenAiEmbeddings::handle(json_encode($data), $embeddingModel);
+            $embeddingAction = config('pgvector-scout.action');
+            $vector = $embeddingAction::handle(json_encode($data), $embeddingModel);
 
             // Create or update the embedding
             Embedding::updateOrCreate(
