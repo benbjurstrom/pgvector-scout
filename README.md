@@ -49,6 +49,20 @@ Optionally, you can publish the views using
 php artisan vendor:publish --tag="pgvector-scout-views"
 ```
 
+
+### Installing the pgvector extension
+Export environment variables to terminal either throught the UI or by running the following command:
+
+```bash
+export PATH=/Users/Shared/DBngin/postgresql/14.3/bin:$PATH
+```
+
+```bash
+git clone https://github.com/pgvector/pgvector.git
+cd pgvector
+make && make install
+```
+
 ## Usage
 
 ```php

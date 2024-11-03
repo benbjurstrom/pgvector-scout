@@ -1,0 +1,43 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        // First ensure the pgvector extension is installed
+        DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
+
+        Schema::create('embeddings', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('embeddable');
+            $table->string('embedding_model');
+            $table->uuid('content_hash');
+            $table->vector('embedding', 1536); // Default OpenAI dimensions
+            $table->softDeletes();
+            $table->timestamps();
+
+            // Add indexes
+            $table->index(['content_hash']);
+            $table->unique(['embeddable_type', 'embeddable_id']);
+        });
+
+        // Create HNSW index on the vector column - this is optional but recommended for larger datasets
+        DB::statement('CREATE INDEX embeddings_vector_idx ON embeddings USING hnsw (embedding vector_cosine_ops)');
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('embeddings');
+    }
+};
