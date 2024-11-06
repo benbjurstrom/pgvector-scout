@@ -1,5 +1,7 @@
 <?php
 
 use BenBjurstrom\PgvectorScout\Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 
-uses(TestCase::class)->in(__DIR__);
+pest()->extend(TestCase::class)->use(DatabaseTransactions::class);

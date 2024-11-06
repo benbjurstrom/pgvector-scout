@@ -5,19 +5,15 @@ namespace BenBjurstrom\PgvectorScout;
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
-use Pgvector\Laravel\Distance;
-use Pgvector\Laravel\Vector;
+use Laravel\Scout\Engines\Engine;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
-use Illuminate\Support\Str;
-use Ramsey\Uuid\Uuid;
 use BenBjurstrom\PgvectorScout\Actions\CreateEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\SearchEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\GetSearchVector;
 
-class PgvectorEngine extends DatabaseEngine
+class PgvectorEngine extends Engine
 {
     /**
      * Update the given model in the index.
@@ -40,17 +36,6 @@ class PgvectorEngine extends DatabaseEngine
     }
 
     /**
-     * Determine if model uses soft deletes.
-     *
-     * @param  Model  $model
-     * @return bool
-     */
-    protected function usesSoftDelete($model): bool
-    {
-        return in_array(SoftDeletes::class, class_uses_recursive($model), true);
-    }
-
-    /**
      * Perform the given search on the engine.
      *
      * @param Builder $builder
@@ -58,41 +43,17 @@ class PgvectorEngine extends DatabaseEngine
      */
     public function search(Builder $builder)
     {
-        // If no query is provided, fallback to standard database search
-        if (empty($builder->query)) {
-            return parent::search($builder);
+        if (blank($builder->query)) {
+            return $builder->model->newQuery();
         }
 
         // Get the search vector using the action class
         $searchVector = GetSearchVector::handle($builder->query);
-        
+
         return SearchEmbedding::handle(
             $builder,
-            $searchVector,
-            $this->usesSoftDelete($builder->model)
+            $searchVector
         );
-    }
-
-    /**
-     * Apply Scout builder constraints to the query.
-     */
-    protected function applyScoutConstraints(Builder $builder, $query)
-    {
-        // Handle soft deletes
-        $query = $this->constrainForSoftDeletes($builder, $query);
-
-        // Add where clauses
-        return $this->addAdditionalConstraints($builder, $query);
-    }
-
-    /**
-     * Convert a string to a vector using the configured model.
-     */
-    protected function vectorizeString(string $query): Vector
-    {
-        // This will be implemented in the SearchVector job class
-        // For now just return a placeholder vector
-        return new Vector(array_fill(0, 1536, 0.0));
     }
 
     /**
@@ -136,7 +97,16 @@ class PgvectorEngine extends DatabaseEngine
 
     public function delete($models)
     {
-        // TODO: Implement delete() method.
+        if ($models->isEmpty()) {
+            return;
+        }
+
+        $models->each(function ($model) {
+            Embedding::query()
+                ->where('embeddable_type', get_class($model))
+                ->where('embeddable_id', $model->getKey())
+                ->forceDelete();
+        });
     }
 
     public function paginate(Builder $builder, $perPage, $page)
