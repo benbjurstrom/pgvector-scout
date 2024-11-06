@@ -14,6 +14,8 @@ use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Support\Str;
 use Ramsey\Uuid\Uuid;
 use BenBjurstrom\PgvectorScout\Actions\CreateEmbedding;
+use BenBjurstrom\PgvectorScout\Actions\SearchEmbedding;
+use BenBjurstrom\PgvectorScout\Actions\GetSearchVector;
 
 class PgvectorEngine extends DatabaseEngine
 {
@@ -61,38 +63,14 @@ class PgvectorEngine extends DatabaseEngine
             return parent::search($builder);
         }
 
-        // Get the search vector
-        $searchVector = $this->getSearchVector($builder->query);
-        if (!$searchVector) {
-            return ['results' => Collection::make(), 'total' => 0];
-        }
-
-        $model = $builder->model;
-        $query = Embedding::query()
-            ->where('embeddable_type', get_class($model));
-
-        // Handle soft deletes by joining with the parent table
-        if ($this->usesSoftDelete($model) && config('scout.soft_delete', false)) {
-            $query->join($model->getTable(), function ($join) use ($model) {
-                $join->on('embeddings.embeddable_id', '=', $model->getTable() . '.id')
-                     ->whereNull($model->getTable() . '.deleted_at');
-            });
-        }
-
-        // Apply nearest neighbors search
-        $query->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
-
-        // Apply limit if specified
-        if ($builder->limit) {
-            $query->take($builder->limit);
-        }
-
-        $models = $query->get();
-
-        return [
-            'results' => $models,
-            'total' => $models->count(),
-        ];
+        // Get the search vector using the action class
+        $searchVector = GetSearchVector::handle($builder->query);
+        
+        return SearchEmbedding::handle(
+            $builder,
+            $searchVector,
+            $this->usesSoftDelete($builder->model)
+        );
     }
 
     /**
@@ -105,23 +83,6 @@ class PgvectorEngine extends DatabaseEngine
 
         // Add where clauses
         return $this->addAdditionalConstraints($builder, $query);
-    }
-
-    /**
-     * Get vector for search query.
-     *
-     * @param mixed $query String to be vectorized or Vector instance
-     * @return \Pgvector\Laravel\Vector|null
-     */
-    protected function getSearchVector(mixed $query): ?Vector
-    {
-        if ($query instanceof Vector) {
-            return $query;
-        }
-
-        $embeddingModel = config('pgvector-scout.model');
-        $embeddingAction = config('pgvector-scout.action');
-        return $embeddingAction::handle($query, $embeddingModel);
     }
 
     /**
