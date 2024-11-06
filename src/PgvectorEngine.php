@@ -13,6 +13,7 @@ use Pgvector\Laravel\Vector;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Support\Str;
 use Ramsey\Uuid\Uuid;
+use BenBjurstrom\PgvectorScout\Actions\CreateEmbedding;
 
 class PgvectorEngine extends DatabaseEngine
 {
@@ -30,86 +31,10 @@ class PgvectorEngine extends DatabaseEngine
 
         $models = $models->take(5);
 
-        // Handle soft deletes if configured
-        if ($this->usesSoftDelete($models->first()) && config('scout.soft_delete', false)) {
-            $models->each->pushSoftDeleteMetadata();
-        }
-
-        // Process each model
+        // Process each model using the CreateEmbedding action
         $models->each(function (EmbeddableModel $model) {
-
-            // Get the searchable data
-            $searchableData = $model->toSearchableArray();
-            if (empty($searchableData)) {
-                return;
-            }
-
-            // Merge with scout metadata
-            $data = array_merge(
-                $searchableData,
-                $model->scoutMetadata(),
-            );
-
-            $data = $this->arrayToLabeledText($data);
-
-            // Calculate hash of the content to determine if we need to update
-            $contentHash = Uuid::uuid5(Uuid::NAMESPACE_OID, $data);
-            $embeddingModel = config('pgvector-scout.model');
-
-            // Check if we already have a vector for this model with the same hash
-            $existingVector = Embedding::query()
-                ->where('embeddable_type', get_class($model))
-                ->where('embeddable_id', $model->getKey())
-                ->where('content_hash', $contentHash)
-                ->where('embedding_model', $embeddingModel)
-                ->first();
-
-            // If we have a matching vector, no need to update
-            if ($existingVector) {
-                return;
-            }
-
-            $embeddingAction = config('pgvector-scout.action');
-            $vector = $embeddingAction::handle($data, $embeddingModel);
-
-            // Create or update the embedding
-            Embedding::updateOrCreate(
-                [
-                    'embeddable_type' => get_class($model),
-                    'embeddable_id' => $model->getKey(),
-                ],
-                [
-                    'embedding_model' => $embeddingModel,
-                    'content_hash' => $contentHash,
-                    'embedding' => $vector
-                ]
-            );
+            CreateEmbedding::handle($model);
         });
-    }
-
-    protected function arrayToLabeledText(array $data): string {
-        if(array_is_list($data)){
-            return $data[0];
-        }
-
-        return collect($data)
-            ->map(function ($value, $key) {
-                // Use Laravel's data_get() for nested arrays
-                if (is_array($value)) {
-                    $value = data_get($value, '*');
-                }
-
-                // Use Laravel's Str::of() for string manipulation
-                return Str::of($key)
-                    ->append(': ')
-                    ->append(match (true) {
-                        is_array($value) => json_encode($value),
-                        is_bool($value) => $value ? 'true' : 'false',
-                        is_null($value) => 'null',
-                        default => $value
-                    });
-            })
-            ->join(PHP_EOL);
     }
 
     /**
@@ -136,17 +61,26 @@ class PgvectorEngine extends DatabaseEngine
             return parent::search($builder);
         }
 
-        // Get the search vector - either directly provided or generated from string
+        // Get the search vector
         $searchVector = $this->getSearchVector($builder->query);
-
         if (!$searchVector) {
             return ['results' => Collection::make(), 'total' => 0];
         }
 
         $model = $builder->model;
         $query = Embedding::query()
-            ->where('embeddable_type', get_class($model))
-            ->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
+            ->where('embeddable_type', get_class($model));
+
+        // Handle soft deletes by joining with the parent table
+        if ($this->usesSoftDelete($model) && config('scout.soft_delete', false)) {
+            $query->join($model->getTable(), function ($join) use ($model) {
+                $join->on('embeddings.embeddable_id', '=', $model->getTable() . '.id')
+                     ->whereNull($model->getTable() . '.deleted_at');
+            });
+        }
+
+        // Apply nearest neighbors search
+        $query->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
 
         // Apply limit if specified
         if ($builder->limit) {

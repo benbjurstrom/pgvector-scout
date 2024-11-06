@@ -1,9 +1,77 @@
-This project is a pacakge for Laravel PHP that provides a Laravel Scout engine for the pgvector postgres extension. Laravel Scout is a first party package for Laravel that is used for searching models.
+# PgVector Scout Package for Laravel
 
-Scout is an excellent choice for this since it automatically uses model observers to keep the searchable data up to date. Traditionally this would be stored in a separate system like Typesense or Meilisearch. But with the pgvector extension we'll use the observers to keep the vectors up to date as the underlying data changes. Here's a few high level architectural decisions.
+This package provides a Laravel Scout engine for the pgvector PostgreSQL extension. Laravel Scout is a first-party package for Laravel that is used for searching models using vector embeddings.
 
-1. We'll store the vectors and their meta data for all models in a separate table and use laravel's polymorphic relationship to associate a vector with a model. The table's schema can be found in @create_embeddings_table.php.stub.
-2. The package provides the @Embedding.php model which we'll use to store the vectors and create a polymorphic relationship to the searchable model.
-3. Laravel scout offers the ablity to use queues to manage creating/updating the vectors. Which is useful since the vectors will need to be fetched from some api like the one provided by openai.
-4. We'll only update the vector if the hash has changed or doesn't exist.
-5. The Engine will only allow a one to one relationship between models and vectors. Therefore, for situations where there are large pieces of content tied to a single model we'll encourage the users to chunk those into a separate table. For example, a table containing blog post content should be chunked into a table called blog_post_chunks and then the search would be applied to the BlogPostChunk model not the original BlogPost table.
+## Architecture Overview
+
+Scout is an excellent choice for this implementation since it automatically uses model observers to keep the searchable data up to date. While traditionally Scout engines store data in separate search systems like Typesense or Meilisearch, this package leverages PostgreSQL's pgvector extension to store and search vector embeddings directly in the database.
+
+### Key Components
+
+1. **Centralized Vector Storage**
+   - All vectors and their metadata are stored in a single `embeddings` table
+   - Uses Laravel's polymorphic relationships to associate vectors with models
+   - Schema defined in `create_embeddings_table.php` migration
+
+2. **Embedding Model**
+   - The package provides an `Embedding` model for managing vectors
+   - Creates polymorphic relationships to searchable models
+   - Stores vector data, content hash, and embedding model information
+
+3. **Vector Updates**
+   - Implements efficient vector updates using content hashing
+   - Only generates new embeddings when content changes
+   - Supports Laravel Scout's queueing system for async vector generation
+   - Integrates with external embedding services (e.g., OpenAI)
+
+4. **Search Implementation**
+   - Uses pgvector's nearest neighbor search with cosine similarity
+   - Supports both vector and text-based queries
+   - Handles soft deletes and additional query constraints
+   - Maintains proper model relationships in search results
+
+5. **Content Processing**
+   - Converts model attributes to labeled text format
+   - Handles nested arrays and various data types
+   - Supports customizable data formatting
+
+### Design Decisions
+
+1. **One-to-One Relationship**
+   - Each model instance has exactly one vector embedding
+   - For large content, it's recommended to chunk data into separate models
+   - Example: Blog posts should be split into `BlogPostChunk` models for optimal search
+
+2. **Caching Strategy**
+   - Uses content hashing to prevent unnecessary embedding updates
+   - Stores content hash alongside vectors for quick comparison
+
+3. **Soft Delete Handling**
+   - Leverages database joins instead of duplicating soft delete state
+   - When soft deletes are enabled, embeddings table is joined with parent table
+   - This ensures consistency and avoids redundant soft delete tracking
+   - More efficient than traditional Scout engines which must maintain separate soft delete states
+
+4. **Extensibility**
+   - Configurable embedding models and actions
+   - Supports custom vector generation implementations
+   - Integrates with Laravel's existing Scout features
+
+### Current Features
+
+- ✅ Vector generation and storage
+- ✅ Nearest neighbor search
+- ✅ Content hashing for efficient updates
+- ✅ Soft delete support
+- ✅ Scout metadata integration
+- ✅ Polymorphic relationships
+- ✅ Lazy loading support
+
+### Upcoming Features
+
+- Pagination support
+- Delete method implementation
+- Total count handling
+- Enhanced ID mapping
+
+This package provides a robust solution for implementing vector search in Laravel applications while maintaining the familiar Scout interface and leveraging PostgreSQL's vector capabilities.
