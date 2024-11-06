@@ -1,0 +1,9 @@
+This project is a pacakge for Laravel PHP that provides a Laravel Scout engine for the pgvector postgres extension. Laravel Scout is a first party package for Laravel that is used for searching models.
+
+Scout is an excellent choice for this since it automatically uses model observers to keep the searchable data up to date. Traditionally this would be stored in a separate system like Typesense or Meilisearch. But with the pgvector extension we'll use the observers to keep the vectors up to date as the underlying data changes. Here's a few high level architectural decisions.
+
+1. We'll store the vectors and their meta data for all models in a separate table and use laravel's polymorphic relationship to associate a vector with a model. The table's schema can be found in @create_embeddings_table.php.stub.
+2. The package provides the @Embedding.php model which we'll use to store the vectors and create a polymorphic relationship to the searchable model.
+3. Laravel scout offers the ablity to use queues to manage creating/updating the vectors. Which is useful since the vectors will need to be fetched from some api like the one provided by openai.
+4. We'll only update the vector if the hash has changed or doesn't exist.
+5. The Engine will only allow a one to one relationship between models and vectors. Therefore, for situations where there are large pieces of content tied to a single model we'll encourage the users to chunk those into a separate table. For example, a table containing blog post content should be chunked into a table called blog_post_chunks and then the search would be applied to the BlogPostChunk model not the original BlogPost table.
