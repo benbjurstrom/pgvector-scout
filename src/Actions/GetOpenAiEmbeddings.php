@@ -6,6 +6,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Pgvector\Laravel\Vector;
 use RuntimeException;
+use Illuminate\Support\Facades\Cache;
 
 class GetOpenAiEmbeddings
 {
@@ -19,18 +20,23 @@ class GetOpenAiEmbeddings
      */
     public static function handle(string $input, string $embeddingModel): Vector
     {
-        $apiKey = static::getApiKey();
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
-            'Content-Type' => 'application/json',
-        ])->post('https://api.openai.com/v1/embeddings', [
-            'input' => $input,
-            'model' => $embeddingModel,
-        ]);
+        $cacheKey = 'openai_embedding:' . sha1($input . $embeddingModel);
 
-        static::validateResponse($response);
-        $embedding = static::extractEmbedding($response);
+        $embedding = Cache::rememberForever($cacheKey, function () use ($input, $embeddingModel) {
+            $apiKey = static::getApiKey();
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])->post('https://api.openai.com/v1/embeddings', [
+                'input' => $input,
+                'model' => $embeddingModel,
+            ]);
+
+            static::validateResponse($response);
+            return static::extractEmbedding($response);
+        });
 
         return new Vector($embedding);
     }

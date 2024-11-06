@@ -2,15 +2,12 @@
 
 namespace BenBjurstrom\PgvectorScout;
 
-use BenBjurstrom\PgvectorScout\Actions\GetOpenAiEmbeddings;
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
-use BenBjurstrom\PgvectorScout\Models\Concerns\HasEmbeddings;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
-use Laravel\Scout\Searchable;
 use Pgvector\Laravel\Distance;
 use Pgvector\Laravel\Vector;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
@@ -30,6 +27,8 @@ class PgvectorEngine extends DatabaseEngine
         if ($models->isEmpty()) {
             return;
         }
+
+        $models = $models->take(5);
 
         // Handle soft deletes if configured
         if ($this->usesSoftDelete($models->first()) && config('scout.soft_delete', false)) {
@@ -51,8 +50,10 @@ class PgvectorEngine extends DatabaseEngine
                 $model->scoutMetadata(),
             );
 
+            $data = $this->arrayToLabeledText($data);
+
             // Calculate hash of the content to determine if we need to update
-            $contentHash = Uuid::uuid5(Uuid::NAMESPACE_OID, json_encode($data));
+            $contentHash = Uuid::uuid5(Uuid::NAMESPACE_OID, $data);
             $embeddingModel = config('pgvector-scout.model');
 
             // Check if we already have a vector for this model with the same hash
@@ -69,7 +70,7 @@ class PgvectorEngine extends DatabaseEngine
             }
 
             $embeddingAction = config('pgvector-scout.action');
-            $vector = $embeddingAction::handle(json_encode($data), $embeddingModel);
+            $vector = $embeddingAction::handle($data, $embeddingModel);
 
             // Create or update the embedding
             Embedding::updateOrCreate(
@@ -84,6 +85,31 @@ class PgvectorEngine extends DatabaseEngine
                 ]
             );
         });
+    }
+
+    protected function arrayToLabeledText(array $data): string {
+        if(array_is_list($data)){
+            return $data[0];
+        }
+
+        return collect($data)
+            ->map(function ($value, $key) {
+                // Use Laravel's data_get() for nested arrays
+                if (is_array($value)) {
+                    $value = data_get($value, '*');
+                }
+
+                // Use Laravel's Str::of() for string manipulation
+                return Str::of($key)
+                    ->append(': ')
+                    ->append(match (true) {
+                        is_array($value) => json_encode($value),
+                        is_bool($value) => $value ? 'true' : 'false',
+                        is_null($value) => 'null',
+                        default => $value
+                    });
+            })
+            ->join(PHP_EOL);
     }
 
     /**
@@ -117,18 +143,10 @@ class PgvectorEngine extends DatabaseEngine
             return ['results' => Collection::make(), 'total' => 0];
         }
 
-        // Get the model's query builder
-        $query = $builder->model->newQuery();
-
-        // Apply any query constraints from the Scout builder
-        $query = $this->applyScoutConstraints($builder, $query);
-
-        // Perform vector similarity search
-        $query->nearestNeighbors(
-            'vector',
-            $searchVector,
-            $builder->options['distance'] ?? Distance::Cosine
-        );
+        $model = $builder->model;
+        $query = Embedding::query()
+            ->where('embeddable_type', get_class($model))
+            ->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
 
         // Apply limit if specified
         if ($builder->limit) {
@@ -167,12 +185,9 @@ class PgvectorEngine extends DatabaseEngine
             return $query;
         }
 
-        // Cache the vectorized string to avoid repeated API calls
-        return cache()->remember(
-            'vector_search_'.md5($query),
-            now()->addDay(),
-            fn() => $this->vectorizeString($query)
-        );
+        $embeddingModel = config('pgvector-scout.model');
+        $embeddingAction = config('pgvector-scout.action');
+        return $embeddingAction::handle($query, $embeddingModel);
     }
 
     /**
@@ -236,12 +251,36 @@ class PgvectorEngine extends DatabaseEngine
 
     public function mapIds($results)
     {
+        dd($results);
         // TODO: Implement mapIds() method.
     }
 
     public function map(Builder $builder, $results, $model)
     {
-        // TODO: Implement map() method.
+        // Get the collection of embedding models
+        $embeddingModels = $results['results'];
+
+        if ($embeddingModels->isEmpty()) {
+            return $model->newCollection();
+        }
+
+        // Get all the model IDs
+        $modelIds = $embeddingModels->pluck('embeddable_id');
+
+        // Eager load the actual models
+        $models = $model->whereIn($model->getKeyName(), $modelIds)->get()
+            ->keyBy(fn ($model) => $model->getKey());
+
+        // Map the embedding models to their corresponding models
+        // while setting the embedding relationship
+        return $embeddingModels->map(function ($embedding) use ($models) {
+            if (isset($models[$embedding->embeddable_id])) {
+                $model = $models[$embedding->embeddable_id];
+                $model->setRelation('embedding', $embedding);
+                return $model;
+            }
+            return null;
+        })->filter();
     }
 
     public function getTotalCount($results)
