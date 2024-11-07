@@ -19,7 +19,7 @@ class SearchEmbedding
      * @param Vector $searchVector
      * @param ?int $perPage
      * @param ?int $page
-     * @return array{results: Collection, total: int}
+     * @return Collection
      */
     public static function handle(
         Builder $builder,
@@ -29,20 +29,27 @@ class SearchEmbedding
     ) {
         $query = static::buildQuery($builder->model, $searchVector);
 
+        // Always join with the model's table to support where clauses
+        $query->join($builder->model->getTable(), function ($join) use ($builder) {
+            $join->on('embeddings.embeddable_id', '=', $builder->model->getTable() . '.id');
+        });
+
+        // Apply where conditions to the model's table
         if ($builder->wheres) {
-            $query->where($builder->wheres);
+            foreach ($builder->wheres as $key => $value) {
+                $query->where($builder->model->getTable() . '.' . $key, $value);
+            }
         }
+
+        // Select only the embeddings columns to avoid conflicts
+        $query->select('embeddings.*');
 
         if ($perPage) {
             $skip = ($page - 1) * $perPage;
             $query->skip($skip)->take($perPage);
         }
 
-        $results = $query->get();
-
-        return [
-            'results' => $results,
-        ];
+        return $query->get();
     }
 
     /**
@@ -57,14 +64,15 @@ class SearchEmbedding
         $query = Embedding::query()
             ->where('embeddable_type', get_class($model));
 
-        $usesSoftDelete = static::usesSoftDelete($model);
-
-        // Handle soft deletes by joining with the parent table
-        if ($usesSoftDelete && config('scout.soft_delete', false)) {
+        // Handle soft deletes
+        if (static::usesSoftDelete($model) && config('scout.soft_delete', false)) {
             $query->join($model->getTable(), function ($join) use ($model) {
                 $join->on('embeddings.embeddable_id', '=', $model->getTable() . '.id')
                      ->whereNull($model->getTable() . '.deleted_at');
             });
+
+            // Select only embeddings columns when we've joined for soft deletes
+            $query->select('embeddings.*');
         }
 
         // Apply nearest neighbors search

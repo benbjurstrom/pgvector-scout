@@ -4,6 +4,7 @@ namespace BenBjurstrom\PgvectorScout\Database\Factories;
 
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Pgvector\Laravel\Vector;
 
 class EmbeddingFactory extends Factory
 {
@@ -15,7 +16,7 @@ class EmbeddingFactory extends Factory
             'embeddable_type' => $this->faker->word,
             'embeddable_id' => $this->faker->randomNumber(),
             'content_hash' => $this->faker->md5,
-            'embedding' => json_encode(array_fill(0, 1536, $this->faker->randomFloat(8, 0, 1))),
+            'embedding' => new Vector(array_fill(0, 1536, $this->faker->randomFloat(8, 0, 1))),
             'embedding_model' => 'test-model'
         ];
     }

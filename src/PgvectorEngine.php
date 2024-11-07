@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
+use Laravel\Scout\Contracts\PaginatesEloquentModels;
+use Laravel\Scout\Contracts\PaginatesEloquentModelsUsingDatabase;
 use Laravel\Scout\Engines\Engine;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use BenBjurstrom\PgvectorScout\Actions\CreateEmbedding;
@@ -39,12 +41,12 @@ class PgvectorEngine extends Engine
      * Perform the given search on the engine.
      *
      * @param Builder $builder
-     * @return mixed
+     * @return Collection
      */
     public function search(Builder $builder)
     {
         if (blank($builder->query)) {
-            return $builder->model->newQuery();
+            return new Collection([]);
         }
 
         // Get the search vector using the action class
@@ -56,11 +58,45 @@ class PgvectorEngine extends Engine
         );
     }
 
+    public function paginate(Builder $builder, $perPage, $page)
+    {
+        if (blank($builder->query)) {
+            return new Collection([]);
+        }
+
+        // Get the search vector using the action class
+        $searchVector = GetSearchVector::handle($builder->query);
+
+        // Get search results with pagination parameters
+        return SearchEmbedding::handle(
+            $builder,
+            $searchVector,
+            $perPage,
+            $page
+        );
+    }
+
+    public function simplePaginate(Builder $builder, $perPage, $page)
+    {
+        dd('j');
+    }
+
+//    public function paginateUsingDatabase(Builder $builder, $perPage, $pageName, $page)
+//    {
+//        dd('j');
+//    }
+//
+//    public function simplePaginateUsingDatabase(Builder $builder, $perPage, $pageName, $page)
+//    {
+//        dd('k');
+//    }
+
     /**
      * Map the given results to instances of the given model via a lazy collection.
      */
     public function lazyMap(Builder $builder, $results, $model): LazyCollection
     {
+        dd('yo');
         return LazyCollection::make($results['results']->all());
     }
 
@@ -109,28 +145,6 @@ class PgvectorEngine extends Engine
         });
     }
 
-    public function paginate(Builder $builder, $perPage, $page)
-    {
-        if (blank($builder->query)) {
-            return $builder->model->newQuery()
-                ->paginate($perPage, ['*'], 'page', $page)
-                ->items();
-        }
-
-        // Get the search vector using the action class
-        $searchVector = GetSearchVector::handle($builder->query);
-
-        // Get search results with pagination parameters
-        $results = SearchEmbedding::handle(
-            $builder,
-            $searchVector,
-            $perPage,
-            $page
-        );
-
-        return $results['results'];
-    }
-
     public function mapIds($results)
     {
         dd($results);
@@ -139,15 +153,12 @@ class PgvectorEngine extends Engine
 
     public function map(Builder $builder, $results, $model)
     {
-        // Get the collection of embedding models
-        $embeddingModels = $results['results'];
-
-        if ($embeddingModels->isEmpty()) {
+        if ($results->isEmpty()) {
             return $model->newCollection();
         }
 
         // Get all the model IDs
-        $modelIds = $embeddingModels->pluck('embeddable_id');
+        $modelIds = $results->pluck('embeddable_id');
 
         // Eager load the actual models
         $models = $model->whereIn($model->getKeyName(), $modelIds)->get()
@@ -155,7 +166,7 @@ class PgvectorEngine extends Engine
 
         // Map the embedding models to their corresponding models
         // while setting the embedding relationship
-        return $embeddingModels->map(function ($embedding) use ($models) {
+        return $results->map(function ($embedding) use ($models) {
             if (isset($models[$embedding->embeddable_id])) {
                 $model = $models[$embedding->embeddable_id];
                 $model->setRelation('embedding', $embedding);

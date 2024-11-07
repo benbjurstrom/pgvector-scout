@@ -2,8 +2,10 @@
 
 namespace BenBjurstrom\PgvectorScout\Tests;
 
+use BenBjurstrom\PgvectorScout\PgvectorEngine;
 use BenBjurstrom\PgvectorScout\Tests\Support\Seeders\DatabaseSeeder;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Laravel\Scout\EngineManager;
 use Orchestra\Testbench\TestCase as Orchestra;
 use BenBjurstrom\PgvectorScout\PgvectorScoutServiceProvider;
 use Workbench\Database\Seeders\DatabaseSeeder as Seeder;
@@ -21,6 +23,10 @@ class TestCase extends Orchestra
 
     protected function getPackageProviders($app)
     {
+        $app->singleton(EngineManager::class, function ($app) {
+            return new EngineManager($app);
+        });
+
         return [
             PgvectorScoutServiceProvider::class,
         ];
@@ -30,6 +36,7 @@ class TestCase extends Orchestra
     {
         config()->set('database.default', 'pgsql');
         config()->set('database.connections.pgsql.username', 'postgres');
+        config()->set('scout.driver', 'pgvector');
 
         // Load the embeddings table migration
 //        $migration = include __DIR__.'/../database/migrations/create_embeddings_table.php.stub';

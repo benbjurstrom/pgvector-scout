@@ -5,7 +5,6 @@ use BenBjurstrom\PgvectorScout\Models\Embedding;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\Review;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\ReviewSoftDelete;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Cache;
 use Pgvector\Laravel\Vector;
 
 beforeEach(function () {
@@ -14,8 +13,8 @@ beforeEach(function () {
 
 test('delete removes embeddings for given models', function () {
     // Create test models using factory
-    $review1 = Review::factory()->create();
-    $review2 = Review::factory()->create();
+    $review1 = Review::factory()->createQuietly();
+    $review2 = Review::factory()->createQuietly();
 
     // Create embeddings for the models using factory
     Embedding::factory()
@@ -48,7 +47,7 @@ test('delete removes multiple embeddings', function () {
     // Create test models using factory
     $reviews = Review::factory()
         ->count(3)
-        ->create();
+        ->createQuietly();
 
     // Create embeddings for each review using factory
     $reviews->each(function ($review) {
@@ -69,7 +68,7 @@ test('delete removes multiple embeddings', function () {
 
 test('soft deleting a model does not delete its embedding', function () {
     // Create test model using factory
-    $review = ReviewSoftDelete::factory()->create();
+    $review = ReviewSoftDelete::factory()->createQuietly();
 
     // Create embedding for the model
     $embedding = Embedding::factory()
@@ -94,7 +93,7 @@ test('paginate returns correct number of results', function () {
     // Create test models and embeddings
     $reviews = Review::factory()
         ->count(15)
-        ->create();
+        ->createQuietly();
 
     $reviews->each(function ($review) {
         Embedding::factory()
@@ -103,7 +102,8 @@ test('paginate returns correct number of results', function () {
     });
 
     // Create a Scout builder instance with a search query
-    $builder = Review::search('test query');
+    $vector = new Vector(array_fill(0, 1536, 0.0));
+    $builder = Review::search($vector);
 
     // Test first page
     $results = $this->engine->paginate($builder, 5, 1);
@@ -122,20 +122,20 @@ test('paginate handles empty search query', function () {
     // Create test models without embeddings
     Review::factory()
         ->count(10)
-        ->create();
+        ->createQuietly();
 
     // Create a Scout builder instance with an empty query
     $builder = Review::search('');
 
     $results = $this->engine->paginate($builder, 5, 1);
-    expect($results)->toHaveCount(5);
+    expect($results)->toHaveCount(0);
 });
 
 test('paginate handles out of range pages', function () {
     // Create test models and embeddings
     $reviews = Review::factory()
         ->count(8)
-        ->create();
+        ->createQuietly();
 
     $reviews->each(function ($review) {
         Embedding::factory()
@@ -156,11 +156,11 @@ test('paginate handles out of range pages', function () {
 test('paginate respects where constraints', function () {
     // Create test models with different ratings
     $reviews = collect([
-        Review::factory()->create(['score' => 5]),
-        Review::factory()->create(['score' => 5]),
-        Review::factory()->create(['score' => 3]),
-        Review::factory()->create(['score' => 3]),
-        Review::factory()->create(['score' => 1]),
+        Review::factory()->createQuietly(['score' => 5]),
+        Review::factory()->createQuietly(['score' => 5]),
+        Review::factory()->createQuietly(['score' => 3]),
+        Review::factory()->createQuietly(['score' => 3]),
+        Review::factory()->createQuietly(['score' => 1]),
     ]);
 
     // Create embeddings for all reviews
@@ -171,11 +171,8 @@ test('paginate respects where constraints', function () {
     });
 
     $vector = new Vector(array_fill(0, 1536, 0.0));
+    $results = Review::search($vector)->where('score', 5)->paginate();
 
-    // Create a Scout builder instance with a where constraint
-    $builder = Review::search($vector)->where('score', 5);
-
-    $results = $this->engine->paginate($builder, 5, 1);
-    expect($results)->toHaveCount(2)
-        ->each(fn ($result) => expect($result->rating)->toBe(5));
+    expect($results)->toHaveCount(2);
+    expect($results->first()->score)->toBe(5);
 });

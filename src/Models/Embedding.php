@@ -10,7 +10,7 @@ use Pgvector\Laravel\HasNeighbors;
 
 class Embedding extends Model
 {
-    use HasNeighbors, SoftDeletes, HasFactory;
+    use HasNeighbors, HasFactory;
 
     /**
      * The attributes that aren't mass assignable.
