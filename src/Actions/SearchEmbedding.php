@@ -17,22 +17,31 @@ class SearchEmbedding
      *
      * @param Builder $builder
      * @param Vector $searchVector
+     * @param ?int $perPage
+     * @param ?int $page
      * @return array{results: Collection, total: int}
      */
-    public static function handle(Builder $builder, Vector $searchVector): array
-    {
+    public static function handle(
+        Builder $builder,
+        Vector $searchVector,
+        ?int $perPage = null,
+        ?int $page = null
+    ) {
         $query = static::buildQuery($builder->model, $searchVector);
 
-        // Apply limit if specified
-        if ($builder->limit) {
-            $query->take($builder->limit);
+        if ($builder->wheres) {
+            $query->where($builder->wheres);
         }
 
-        $models = $query->get();
+        if ($perPage) {
+            $skip = ($page - 1) * $perPage;
+            $query->skip($skip)->take($perPage);
+        }
+
+        $results = $query->get();
 
         return [
-            'results' => $models,
-            'total' => $models->count(),
+            'results' => $results,
         ];
     }
 

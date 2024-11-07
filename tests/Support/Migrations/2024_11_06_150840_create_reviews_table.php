@@ -22,6 +22,7 @@ return new class extends Migration
             $table->integer('time');
             $table->text('summary');
             $table->text('text');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

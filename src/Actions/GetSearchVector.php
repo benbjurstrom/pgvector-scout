@@ -12,7 +12,7 @@ class GetSearchVector
      * @param mixed $query String to be vectorized or Vector instance
      * @return \Pgvector\Laravel\Vector|null
      */
-    public static function handle(mixed $query): ?Vector
+    public static function handle(mixed $query): Vector
     {
         if ($query instanceof Vector) {
             return $query;
@@ -22,4 +22,4 @@ class GetSearchVector
         $embeddingAction = config('pgvector-scout.action');
         return $embeddingAction::handle($query, $embeddingModel);
     }
-} 
+}

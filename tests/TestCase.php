@@ -2,9 +2,11 @@
 
 namespace BenBjurstrom\PgvectorScout\Tests;
 
+use BenBjurstrom\PgvectorScout\Tests\Support\Seeders\DatabaseSeeder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
 use BenBjurstrom\PgvectorScout\PgvectorScoutServiceProvider;
+use Workbench\Database\Seeders\DatabaseSeeder as Seeder;
 
 class TestCase extends Orchestra
 {

@@ -111,7 +111,24 @@ class PgvectorEngine extends Engine
 
     public function paginate(Builder $builder, $perPage, $page)
     {
-        // TODO: Implement paginate() method.
+        if (blank($builder->query)) {
+            return $builder->model->newQuery()
+                ->paginate($perPage, ['*'], 'page', $page)
+                ->items();
+        }
+
+        // Get the search vector using the action class
+        $searchVector = GetSearchVector::handle($builder->query);
+
+        // Get search results with pagination parameters
+        $results = SearchEmbedding::handle(
+            $builder,
+            $searchVector,
+            $perPage,
+            $page
+        );
+
+        return $results['results'];
     }
 
     public function mapIds($results)
@@ -150,6 +167,10 @@ class PgvectorEngine extends Engine
 
     public function getTotalCount($results)
     {
-        // TODO: Implement getTotalCount() method.
+        if (! isset($results['results'])) {
+            return 0;
+        }
+
+        return $results['results']->count();
     }
 }

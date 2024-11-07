@@ -14,4 +14,18 @@ class Review extends EmbeddableModel
     {
         return ReviewFactory::new();
     }
+
+    /**
+     * Get the indexable data array for the model.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'summary' => $this->summary,
+            'text' => $this->text,
+        ];
+    }
+
 }
