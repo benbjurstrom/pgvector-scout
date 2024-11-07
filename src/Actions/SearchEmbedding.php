@@ -6,6 +6,7 @@ use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Builder;
 use Pgvector\Laravel\Distance;
 use Pgvector\Laravel\Vector;
@@ -27,22 +28,28 @@ class SearchEmbedding
         ?int $perPage = null,
         ?int $page = null
     ) {
-        $query = static::buildQuery($builder->model, $searchVector);
+        DB::connection()->enableQueryLog();
 
-        // Always join with the model's table to support where clauses
-        $query->join($builder->model->getTable(), function ($join) use ($builder) {
-            $join->on('embeddings.embeddable_id', '=', $builder->model->getTable() . '.id');
+        $model = $builder->model;
+        $query = Embedding::query()
+            ->where('embeddable_type', $model->getMorphClass());
+
+        $query->whereHas('embeddable', function($query) use ($builder, $model) {
+            if ($builder->wheres) {
+                foreach ($builder->wheres as $key => $value) {
+                    $query->where($key, $value);
+                }
+            }
+
+            if (static::usesSoftDelete($model)) {
+                $query->whereNull('deleted_at');
+            }
         });
 
-        // Apply where conditions to the model's table
-        if ($builder->wheres) {
-            foreach ($builder->wheres as $key => $value) {
-                $query->where($builder->model->getTable() . '.' . $key, $value);
-            }
-        }
+        $query->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
 
         // Select only the embeddings columns to avoid conflicts
-        $query->select('embeddings.*');
+        // $query->addSelect('embeddings.*');
 
         if ($perPage) {
             $skip = ($page - 1) * $perPage;
@@ -52,32 +59,6 @@ class SearchEmbedding
         return $query->get();
     }
 
-    /**
-     * Build the search query
-     *
-     * @param Model $model
-     * @param Vector $searchVector
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    protected static function buildQuery(Model $model, Vector $searchVector): \Illuminate\Database\Eloquent\Builder
-    {
-        $query = Embedding::query()
-            ->where('embeddable_type', get_class($model));
-
-        // Handle soft deletes
-        if (static::usesSoftDelete($model) && config('scout.soft_delete', false)) {
-            $query->join($model->getTable(), function ($join) use ($model) {
-                $join->on('embeddings.embeddable_id', '=', $model->getTable() . '.id')
-                     ->whereNull($model->getTable() . '.deleted_at');
-            });
-
-            // Select only embeddings columns when we've joined for soft deletes
-            $query->select('embeddings.*');
-        }
-
-        // Apply nearest neighbors search
-        return $query->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
-    }
 
     /**
      * Determine if model uses soft deletes.

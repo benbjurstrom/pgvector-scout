@@ -5,6 +5,7 @@ namespace BenBjurstrom\PgvectorScout;
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Contracts\PaginatesEloquentModels;
@@ -29,6 +30,7 @@ class PgvectorEngine extends Engine
             return;
         }
 
+        // TODO - Remove this limit
         $models = $models->take(5);
 
         // Process each model using the CreateEmbedding action
@@ -128,7 +130,7 @@ class PgvectorEngine extends Engine
     {
         Embedding::query()
             ->where('embeddable_type', get_class($model))
-            ->forceDelete();
+            ->delete();
     }
 
     public function delete($models)
@@ -141,7 +143,7 @@ class PgvectorEngine extends Engine
             Embedding::query()
                 ->where('embeddable_type', get_class($model))
                 ->where('embeddable_id', $model->getKey())
-                ->forceDelete();
+                ->delete();
         });
     }
 
