@@ -186,7 +186,7 @@ class PgvectorEngine extends Engine
         // Eager load the actual models
         $key = $model->getKeyName();
         $models = $model->whereIn($key, $modelIds)->get();
-        $models = $models->keyBy(fn (Model $model) => $model->getKeyName());
+        $models = $models->keyBy(fn (Model $model) => $model->getKey());
 
         // Map the embeddings to the models
         return $results->map(function ($embedding) use ($models) {

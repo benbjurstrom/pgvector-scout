@@ -39,7 +39,7 @@ test('search method can filter by model properties', function () {
     $builder = Review::search($vector);
 
     // Perform the search
-    $results = Review::search($vector)->get()->where('score', '=', 3);
+    $results = Review::search($vector)->where('score', 3)->get();
 
     // Verify the results contain the expected number of items
     expect($results)->toHaveCount(2);
