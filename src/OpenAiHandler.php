@@ -1,14 +1,15 @@
 <?php
 
-namespace BenBjurstrom\PgvectorScout\Actions;
+namespace BenBjurstrom\PgvectorScout;
 
+use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Pgvector\Laravel\Vector;
 use RuntimeException;
-use Illuminate\Support\Facades\Cache;
 
-class GetOpenAiEmbeddings
+class OpenAiHandler implements EmbeddingHandler
 {
     /**
      * Get OpenAI embeddings for a given input
@@ -20,7 +21,6 @@ class GetOpenAiEmbeddings
      */
     public static function handle(string $input, string $embeddingModel): Vector
     {
-
         $cacheKey = 'openai_embedding:' . sha1($input . $embeddingModel);
 
         $embedding = Cache::rememberForever($cacheKey, function () use ($input, $embeddingModel) {

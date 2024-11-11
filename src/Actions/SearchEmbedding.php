@@ -6,6 +6,7 @@ use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Builder;
 use Pgvector\Laravel\Distance;
@@ -20,7 +21,7 @@ class SearchEmbedding
      * @param Vector $searchVector
      * @param ?int $perPage
      * @param ?int $page
-     * @return Collection
+     * @return Collection|LengthAwarePaginator
      */
     public static function handle(
         Builder $builder,
@@ -52,8 +53,7 @@ class SearchEmbedding
         // $query->addSelect('embeddings.*');
 
         if ($perPage) {
-            $skip = ($page - 1) * $perPage;
-            $query->skip($skip)->take($perPage);
+            return $query->paginate($perPage, ['*'], 'page', $page);
         }
 
         return $query->get();

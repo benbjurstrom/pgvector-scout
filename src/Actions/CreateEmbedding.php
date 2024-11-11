@@ -4,6 +4,7 @@ namespace BenBjurstrom\PgvectorScout\Actions;
 
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
+use Pgvector\Laravel\Vector;
 use Ramsey\Uuid\Uuid;
 
 class CreateEmbedding
@@ -28,23 +29,17 @@ class CreateEmbedding
             $model->scoutMetadata(),
         );
 
-        $data = static::arrayToLabeledText($data);
-
-        // Calculate hash of the content to determine if we need to update
-        $contentHash = static::generateContentHash($data);
-        $embeddingModel = config('pgvector-scout.model');
+        $content = static::arrayToLabeledText($data);
 
         // Check if we already have a vector for this model with the same hash
-        $existingVector = static::findExistingEmbedding($model, $contentHash, $embeddingModel);
-        if ($existingVector) {
-            return $existingVector;
+        $contentHash = HashContent::handle($content);
+        if($embedding = static::existingEmbedding($model, $contentHash)) {
+            return $embedding;
         }
 
-        // Generate vector using configured embedding action
-        $vector = static::generateVector($data, $embeddingModel);
-
-        // Create or update the embedding
-        return static::updateOrCreateEmbedding($model, $embeddingModel, $contentHash, $vector);
+        // If not fetch an embedding for the content and save it
+        $vector = FetchEmbedding::handle($content);
+        return static::updateOrCreateEmbedding($model, $contentHash, $vector);
     }
 
     /**
@@ -80,29 +75,17 @@ class CreateEmbedding
     }
 
     /**
-     * Generate a content hash
-     *
-     * @param string $data
-     * @return string
-     */
-    protected static function generateContentHash(string $data): string
-    {
-        return Uuid::uuid5(Uuid::NAMESPACE_OID, $data)->toString();
-    }
-
-    /**
      * Find existing embedding with matching hash
      *
      * @param EmbeddableModel $model
      * @param string $contentHash
-     * @param string $embeddingModel
      * @return Embedding|null
      */
-    protected static function findExistingEmbedding(
+    protected static function existingEmbedding(
         EmbeddableModel $model,
         string $contentHash,
-        string $embeddingModel
     ): ?Embedding {
+        $embeddingModel = config('pgvector-scout.embedding.model');
         return Embedding::query()
             ->where('embeddable_type', get_class($model))
             ->where('embeddable_id', $model->getKey())
@@ -112,32 +95,17 @@ class CreateEmbedding
     }
 
     /**
-     * Generate vector using configured embedding action
-     *
-     * @param string $data
-     * @param string $embeddingModel
-     * @return \Pgvector\Laravel\Vector
-     */
-    protected static function generateVector(string $data, string $embeddingModel): \Pgvector\Laravel\Vector
-    {
-        $embeddingAction = config('pgvector-scout.action');
-        return $embeddingAction::handle($data, $embeddingModel);
-    }
-
-    /**
      * Create or update embedding record
      *
      * @param EmbeddableModel $model
-     * @param string $embeddingModel
      * @param string $contentHash
-     * @param \Pgvector\Laravel\Vector $vector
+     * @param Vector $vector
      * @return Embedding
      */
     protected static function updateOrCreateEmbedding(
         EmbeddableModel $model,
-        string $embeddingModel,
         string $contentHash,
-        \Pgvector\Laravel\Vector $vector
+        Vector $vector
     ): Embedding {
         return Embedding::updateOrCreate(
             [
@@ -145,7 +113,7 @@ class CreateEmbedding
                 'embeddable_id' => $model->getKey(),
             ],
             [
-                'embedding_model' => $embeddingModel,
+                'embedding_model' => config('pgvector-scout.embedding.model'),
                 'content_hash' => $contentHash,
                 'embedding' => $vector
             ]

@@ -11,6 +11,16 @@ beforeEach(function () {
     $this->engine = new PgvectorEngine();
 });
 
+test('update method calls CreateEmbedding for each model', function () {
+    // Create test models
+    Review::factory()
+        ->count(2)
+        ->create();
+
+    // ensure embeddings are created for all models
+    expect(Embedding::count())->toBe(2);
+});
+
 test('search method can filter by model properties', function () {
     // Create test models with different scores
     $review1 = Review::factory()->createQuietly(['score' => 5]);
@@ -120,7 +130,7 @@ test('soft deleting a model does not delete its embedding if scout.soft_delete i
     expect(Embedding::first()->id)->toBe($embedding->id);
 });
 
-test('paginate returns correct number of results', function () {
+test('paginate returns correct number of results and pagination metadata', function () {
     // Create test models and embeddings
     $reviews = Review::factory()
         ->count(14)
@@ -136,16 +146,27 @@ test('paginate returns correct number of results', function () {
     $vector = new Vector(array_fill(0, 1536, 0.0));
 
     // Test first page
-    $results = Review::search($vector)->paginate(5, page:1);
-    expect($results)->toHaveCount(5);
+    $results = Review::search($vector)->paginate(5, page: 1);
+    expect($results)
+        ->toHaveCount(5)
+        ->and($results->currentPage())->toBe(1)
+        ->and($results->total())->toBe(14)
+        ->and($results->lastPage())->toBe(3);
 
     // Test second page
-    $results = Review::search($vector)->paginate(5, page:2);
-    expect($results)->toHaveCount(5);
+    $results = Review::search($vector)->paginate(5, page: 2);
+    expect($results)
+        ->toHaveCount(5)
+        ->and($results->currentPage())->toBe(2)
+        ->and($results->total())->toBe(14)
+        ->and($results->hasMorePages())->toBeTrue();
 
     // Test last page
-    $results = Review::search($vector)->paginate(5, page:3);
-    expect($results)->toHaveCount(4);
+    $results = Review::search($vector)->paginate(5, page: 3);
+    expect($results)
+        ->toHaveCount(4)
+        ->and($results->currentPage())->toBe(3)
+        ->and($results->hasMorePages())->toBeFalse();
 });
 
 test('paginate handles empty search query', function () {
@@ -155,8 +176,11 @@ test('paginate handles empty search query', function () {
         ->createQuietly();
 
     // Create a Scout builder instance with an empty query
-    $results = Review::search('')->paginate(5, page:1);
-    expect($results)->toHaveCount(0);
+    $results = Review::search('')->paginate(5, page: 1);
+    expect($results)
+        ->toHaveCount(0)
+        ->and($results->total())->toBe(0)
+        ->and($results->lastPage())->toBe(1);
 });
 
 test('paginate handles out of range pages', function () {
@@ -173,12 +197,13 @@ test('paginate handles out of range pages', function () {
 
     $vector = new Vector(array_fill(0, 1536, 0.0));
 
-    // Create a Scout builder instance
-    $builder = Review::search($vector);
-
     // Test page beyond available results
-    $results = Review::search($vector)->paginate(5, page:3);
-    expect($results)->toHaveCount(0);
+    $results = Review::search($vector)->paginate(5, page: 3);
+    expect($results)
+        ->toHaveCount(0)
+        ->and($results->total())->toBe(8)
+        ->and($results->currentPage())->toBe(3)
+        ->and($results->lastPage())->toBe(2);
 });
 
 test('paginate respects where constraints', function () {
@@ -199,10 +224,15 @@ test('paginate respects where constraints', function () {
     });
 
     $vector = new Vector(array_fill(0, 1536, 0.0));
-    $results = Review::search($vector)->where('score', 5)->paginate();
+    $results = Review::search($vector)
+        ->where('score', 5)
+        ->paginate(2, page: 1);
 
-    expect($results)->toHaveCount(2);
-    expect($results->first()->score)->toBe(5);
+    expect($results)
+        ->toHaveCount(2)
+        ->and($results->all())->each(
+            fn ($item) => $item->score->toBe(5)
+        );
 });
 
 test('flush method removes all embeddings for a given model type', function () {

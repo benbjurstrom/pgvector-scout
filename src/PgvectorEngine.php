@@ -2,19 +2,16 @@
 
 namespace BenBjurstrom\PgvectorScout;
 
+use BenBjurstrom\PgvectorScout\Actions\CreateEmbedding;
+use BenBjurstrom\PgvectorScout\Actions\FetchEmbedding;
+use BenBjurstrom\PgvectorScout\Actions\SearchEmbedding;
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
+use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
-use Laravel\Scout\Contracts\PaginatesEloquentModels;
-use Laravel\Scout\Contracts\PaginatesEloquentModelsUsingDatabase;
 use Laravel\Scout\Engines\Engine;
-use BenBjurstrom\PgvectorScout\Models\Embedding;
-use BenBjurstrom\PgvectorScout\Actions\CreateEmbedding;
-use BenBjurstrom\PgvectorScout\Actions\SearchEmbedding;
-use BenBjurstrom\PgvectorScout\Actions\GetSearchVector;
 
 class PgvectorEngine extends Engine
 {
@@ -30,10 +27,6 @@ class PgvectorEngine extends Engine
             return;
         }
 
-        // TODO - Remove this limit
-        $models = $models->take(5);
-
-        // Process each model using the CreateEmbedding action
         $models->each(function (EmbeddableModel $model) {
             CreateEmbedding::handle($model);
         });
@@ -43,16 +36,15 @@ class PgvectorEngine extends Engine
      * Perform the given search on the engine.
      *
      * @param Builder $builder
-     * @return Collection
+     * @return Collection<int, Model>
      */
-    public function search(Builder $builder)
+    public function search(Builder $builder): Collection
     {
         if (blank($builder->query)) {
-            return new Collection([]);
+            return new Collection();
         }
 
-        // Get the search vector using the action class
-        $searchVector = GetSearchVector::handle($builder->query);
+        $searchVector = FetchEmbedding::handle($builder->query);
 
         return SearchEmbedding::handle(
             $builder,
@@ -66,40 +58,14 @@ class PgvectorEngine extends Engine
             return new Collection([]);
         }
 
-        // Get the search vector using the action class
-        $searchVector = GetSearchVector::handle($builder->query);
+        $searchVector = FetchEmbedding::handle($builder->query);
 
-        // Get search results with pagination parameters
         return SearchEmbedding::handle(
             $builder,
             $searchVector,
             $perPage,
             $page
         );
-    }
-
-    public function simplePaginate(Builder $builder, $perPage, $page)
-    {
-        dd('j');
-    }
-
-//    public function paginateUsingDatabase(Builder $builder, $perPage, $pageName, $page)
-//    {
-//        dd('j');
-//    }
-//
-//    public function simplePaginateUsingDatabase(Builder $builder, $perPage, $pageName, $page)
-//    {
-//        dd('k');
-//    }
-
-    /**
-     * Map the given results to instances of the given model via a lazy collection.
-     */
-    public function lazyMap(Builder $builder, $results, $model): LazyCollection
-    {
-        dd('yo');
-        return LazyCollection::make($results['results']->all());
     }
 
     /**
@@ -139,35 +105,48 @@ class PgvectorEngine extends Engine
             return;
         }
 
-        $models->each(function ($model) {
-            Embedding::query()
-                ->where('embeddable_type', get_class($model))
-                ->where('embeddable_id', $model->getKey())
-                ->delete();
-        });
+        // Use a single query instead of multiple queries
+        Embedding::query()
+            ->where('embeddable_type', get_class($models->first()))
+            ->whereIn('embeddable_id', $models->pluck('id'))
+            ->delete();
     }
 
     public function mapIds($results)
     {
-        dd($results);
-        // TODO: Implement mapIds() method.
+        return $results->pluck('embeddable_id')->values();
     }
 
+    /**
+     * Map the given results to instances of the given model via a lazy collection.
+     */
+    public function lazyMap(Builder $builder, $results, $model): LazyCollection
+    {
+        return LazyCollection::make($this->map($builder, $results, $model));
+    }
+
+    /**
+     * Get the total count from a raw result returned by the engine.
+     *
+     * @param Builder $builder
+     * @param $results
+     * @param $model
+     * @return Collection
+     */
     public function map(Builder $builder, $results, $model)
     {
         if ($results->isEmpty()) {
             return $model->newCollection();
         }
 
-        // Get all the model IDs
         $modelIds = $results->pluck('embeddable_id');
 
         // Eager load the actual models
-        $models = $model->whereIn($model->getKeyName(), $modelIds)->get()
+        $models = $model->whereIn($model->getKeyName(), $modelIds)
+            ->get()
             ->keyBy(fn ($model) => $model->getKey());
 
-        // Map the embedding models to their corresponding models
-        // while setting the embedding relationship
+        // Map the embeddings to the models
         return $results->map(function ($embedding) use ($models) {
             if (isset($models[$embedding->embeddable_id])) {
                 $model = $models[$embedding->embeddable_id];
@@ -178,12 +157,18 @@ class PgvectorEngine extends Engine
         })->filter();
     }
 
-    public function getTotalCount($results)
+    /**
+     * Get the total count from a raw result returned by the engine.
+     *
+     * @param mixed $results
+     * @return int
+     */
+    public function getTotalCount($results): int
     {
-        if (! isset($results['results'])) {
-            return 0;
+        if($results instanceof Collection) {
+            return $results->count();
         }
 
-        return $results['results']->count();
+        return $results->total();
     }
 }
