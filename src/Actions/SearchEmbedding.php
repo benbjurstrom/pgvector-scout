@@ -17,7 +17,8 @@ class SearchEmbedding
     /**
      * Search for embeddings using vector similarity
      *
-     * @return Collection|LengthAwarePaginator
+     * @param  Builder<Model>  $builder
+     * @return Collection<int, Embedding>|LengthAwarePaginator<Embedding>
      */
     public static function handle(
         Builder $builder,
@@ -45,11 +46,8 @@ class SearchEmbedding
 
         $query->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
 
-        // Select only the embeddings columns to avoid conflicts
-        // $query->addSelect('embeddings.*');
-
         if ($perPage) {
-            return $query->paginate($perPage, ['*'], 'page', $page);
+            return $query->paginate($perPage, pageName: 'page', page: $page);
         }
 
         return $query->get();

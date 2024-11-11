@@ -1,6 +1,6 @@
 <?php
 
-namespace BenBjurstrom\PgvectorScout;
+namespace BenBjurstrom\PgvectorScout\Handlers;
 
 use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
 use Illuminate\Http\Client\Response;
@@ -71,6 +71,8 @@ class OpenAiHandler implements EmbeddingHandler
 
     /**
      * Extract the embedding from the response
+     *
+     * @return array<int, float>
      *
      * @throws RuntimeException
      */

@@ -7,8 +7,10 @@ use BenBjurstrom\PgvectorScout\Actions\FetchEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\SearchEmbedding;
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine;
@@ -35,41 +37,63 @@ class PgvectorEngine extends Engine
     /**
      * Perform the given search on the engine.
      *
-     * @return Collection<int, Model>
+     * @param  Builder<Model>  $builder
+     * @return Collection<int, Embedding>
      */
     public function search(Builder $builder): Collection
     {
         if (blank($builder->query)) {
-            return new Collection;
+            return (new Embedding)->newCollection();
         }
 
         $searchVector = FetchEmbedding::handle($builder->query);
 
-        return SearchEmbedding::handle(
+        $result = SearchEmbedding::handle(
             $builder,
             $searchVector
         );
+
+        if ($result instanceof LengthAwarePaginator) {
+            throw new Exception('LengthAwarePaginator not supported');
+        }
+
+        return $result;
     }
 
-    public function paginate(Builder $builder, $perPage, $page)
+    /**
+     * Perform the given search on the engine.
+     *
+     * @param  Builder<Model>  $builder
+     * @return LengthAwarePaginator<Embedding>
+     */
+    public function paginate(Builder $builder, $perPage, $page): LengthAwarePaginator
     {
         if (blank($builder->query)) {
-            return new Collection([]);
+            return (new Embedding)->paginate();
         }
 
         $searchVector = FetchEmbedding::handle($builder->query);
 
-        return SearchEmbedding::handle(
+        $result = SearchEmbedding::handle(
             $builder,
             $searchVector,
             $perPage,
             $page
         );
+
+        if (! $result instanceof LengthAwarePaginator) {
+            throw new Exception('LengthAwarePaginator required');
+        }
+
+        return $result;
     }
 
     /**
      * Create a search index.
      * Not needed since we use a shared vectors table.
+     *
+     * @param  string  $name
+     * @param  array<int, string>  $options
      */
     public function createIndex($name, array $options = [])
     {
@@ -79,6 +103,8 @@ class PgvectorEngine extends Engine
     /**
      * Delete a search index.
      * Not needed since we use a shared vectors table.
+     *
+     * @param  string  $name
      */
     public function deleteIndex($name)
     {
@@ -98,6 +124,12 @@ class PgvectorEngine extends Engine
             ->delete();
     }
 
+    /**
+     * Update the given model in the index.
+     *
+     * @param  Collection<int, EmbeddableModel>  $models
+     * @return void
+     */
     public function delete($models)
     {
         if ($models->isEmpty()) {
@@ -111,6 +143,12 @@ class PgvectorEngine extends Engine
             ->delete();
     }
 
+    /**
+     * Map the given results to instances of the given model.
+     *
+     * @param  Collection<int, Embedding>  $results
+     * @return \Illuminate\Support\Collection<int, mixed>
+     */
     public function mapIds($results)
     {
         return $results->pluck('embeddable_id')->values();
@@ -118,6 +156,11 @@ class PgvectorEngine extends Engine
 
     /**
      * Map the given results to instances of the given model via a lazy collection.
+     *
+     * @param  Builder<Model>  $builder
+     * @param  Collection<int, Embedding>  $results
+     * @param  Model  $model
+     * @return LazyCollection<int, Model>
      */
     public function lazyMap(Builder $builder, $results, $model): LazyCollection
     {
@@ -127,7 +170,10 @@ class PgvectorEngine extends Engine
     /**
      * Get the total count from a raw result returned by the engine.
      *
-     * @return Collection
+     * @param  Builder<Model>  $builder
+     * @param  Collection<int, Embedding>  $results
+     * @param  Model  $model
+     * @return Collection<int, Model>
      */
     public function map(Builder $builder, $results, $model)
     {
@@ -138,9 +184,9 @@ class PgvectorEngine extends Engine
         $modelIds = $results->pluck('embeddable_id');
 
         // Eager load the actual models
-        $models = $model->whereIn($model->getKeyName(), $modelIds)
-            ->get()
-            ->keyBy(fn ($model) => $model->getKey());
+        $key = $model->getKeyName();
+        $models = $model->whereIn($key, $modelIds)->get();
+        $models = $models->keyBy(fn (Model $model) => $model->getKeyName());
 
         // Map the embeddings to the models
         return $results->map(function ($embedding) use ($models) {

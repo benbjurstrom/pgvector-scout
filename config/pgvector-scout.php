@@ -12,7 +12,7 @@ return [
     |
     */
     'embedding' => [
-        'handler' => \BenBjurstrom\PgvectorScout\OpenAiHandler::class,
+        'handler' => \BenBjurstrom\PgvectorScout\Handlers\OpenAiHandler::class,
         'model' => 'text-embedding-3-small',
     ],
 ];

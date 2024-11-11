@@ -2,13 +2,26 @@
 
 namespace BenBjurstrom\PgvectorScout\Models;
 
+use BenBjurstrom\PgvectorScout\Database\Factories\EmbeddingFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
 use Pgvector\Laravel\HasNeighbors;
 use Pgvector\Laravel\Vector;
 
+/**
+ * @property string|int $embeddable_id
+ * @property string $embeddable_type
+ * @property string $embedding_model
+ * @property string $content_hash
+ * @property Vector $embedding
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * */
 class Embedding extends Model
 {
+    /** @use HasFactory<EmbeddingFactory> */
     use HasFactory, HasNeighbors;
 
     /**
@@ -25,14 +38,15 @@ class Embedding extends Model
      */
     protected $casts = [
         'embedding' => Vector::class,
-        'metadata' => 'array',
         //'content_hash' => 'uuid',
     ];
 
     /**
      * Get the parent embeddable model.
+     *
+     * @return MorphTo<Model, $this>
      */
-    public function embeddable()
+    public function embeddable(): MorphTo
     {
         return $this->morphTo();
     }

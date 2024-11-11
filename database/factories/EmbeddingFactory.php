@@ -4,8 +4,10 @@ namespace BenBjurstrom\PgvectorScout\Database\Factories;
 
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Model;
 use Pgvector\Laravel\Vector;
 
+/** @extends Factory<Embedding> */
 class EmbeddingFactory extends Factory
 {
     protected $model = Embedding::class;
@@ -21,7 +23,7 @@ class EmbeddingFactory extends Factory
         ];
     }
 
-    public function forModel($model): self
+    public function forModel(Model $model): self
     {
         return $this->state(function (array $attributes) use ($model) {
             return [

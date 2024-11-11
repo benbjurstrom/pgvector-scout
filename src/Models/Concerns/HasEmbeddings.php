@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 trait HasEmbeddings
 {
     /**
-     * @return MorphOne<Embedding>
+     * @return MorphOne<Embedding, $this>
      */
     public function embedding(): MorphOne
     {

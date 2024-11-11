@@ -4,6 +4,7 @@ namespace BenBjurstrom\PgvectorScout\Actions;
 
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
+use Illuminate\Support\Str;
 use Pgvector\Laravel\Vector;
 
 class CreateEmbedding
@@ -41,10 +42,12 @@ class CreateEmbedding
 
     /**
      * Convert array data to labeled text format
+     *
+     * @param  array<int|string, string|array<string, string>>  $data
      */
     protected static function arrayToLabeledText(array $data): string
     {
-        if (array_is_list($data)) {
+        if (array_is_list($data) && is_string($data[0])) {
             return $data[0];
         }
 
@@ -56,7 +59,7 @@ class CreateEmbedding
                 }
 
                 // Use Laravel's Str::of() for string manipulation
-                return \Illuminate\Support\Str::of($key)
+                return Str::of((string) $key)
                     ->append(': ')
                     ->append(match (true) {
                         is_array($value) => json_encode($value),
