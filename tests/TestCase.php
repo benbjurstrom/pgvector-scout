@@ -2,14 +2,11 @@
 
 namespace BenBjurstrom\PgvectorScout\Tests;
 
-use BenBjurstrom\PgvectorScout\PgvectorEngine;
-use BenBjurstrom\PgvectorScout\Tests\Support\Seeders\DatabaseSeeder;
+use BenBjurstrom\PgvectorScout\PgvectorScoutServiceProvider;
+use BenBjurstrom\PgvectorScout\Tests\Support\FakeVectorHandler;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Laravel\Scout\EngineManager;
 use Orchestra\Testbench\TestCase as Orchestra;
-use BenBjurstrom\PgvectorScout\PgvectorScoutServiceProvider;
-use BenBjurstrom\PgvectorScout\Tests\Support\FakeVectorHandler;
-use Workbench\Database\Seeders\DatabaseSeeder as Seeder;
 
 class TestCase extends Orchestra
 {
@@ -41,11 +38,11 @@ class TestCase extends Orchestra
         config()->set('pgvector-scout.embedding.handler', FakeVectorHandler::class);
 
         // Load the embeddings table migration
-//        $migration = include __DIR__.'/../database/migrations/create_embeddings_table.php.stub';
-//        $migration->up();
-//
-//        // Load the reviews table migration for testing
-//        $migration = include __DIR__.'/Support/Migrations/2024_11_06_150840_create_reviews_table.php';
-//        $migration->up();
+        //        $migration = include __DIR__.'/../database/migrations/create_embeddings_table.php.stub';
+        //        $migration->up();
+        //
+        //        // Load the reviews table migration for testing
+        //        $migration = include __DIR__.'/Support/Migrations/2024_11_06_150840_create_reviews_table.php';
+        //        $migration->up();
     }
 }

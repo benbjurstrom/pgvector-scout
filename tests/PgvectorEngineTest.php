@@ -1,14 +1,14 @@
 <?php
 
-use BenBjurstrom\PgvectorScout\PgvectorEngine;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
+use BenBjurstrom\PgvectorScout\PgvectorEngine;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\Review;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\ReviewSoftDelete;
 use Illuminate\Database\Eloquent\Collection;
 use Pgvector\Laravel\Vector;
 
 beforeEach(function () {
-    $this->engine = new PgvectorEngine();
+    $this->engine = new PgvectorEngine;
 });
 
 test('update method calls CreateEmbedding for each model', function () {
@@ -76,7 +76,7 @@ test('delete method removes embeddings for given models', function () {
 });
 
 test('delete handles empty collection gracefully', function () {
-    $this->engine->delete(new Collection());
+    $this->engine->delete(new Collection);
 
     expect(true)->toBeTrue(); // Test passes if no exception is thrown
 });

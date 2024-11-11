@@ -28,7 +28,6 @@ class AlgoliaEngine extends Engine
     /**
      * Create a new engine instance.
      *
-     * @param  \Algolia\AlgoliaSearch\SearchClient  $algolia
      * @param  bool  $softDelete
      * @return void
      */
@@ -99,7 +98,6 @@ class AlgoliaEngine extends Engine
     /**
      * Perform the given search on the engine.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @return mixed
      */
     public function search(Builder $builder)
@@ -113,7 +111,6 @@ class AlgoliaEngine extends Engine
     /**
      * Perform the given search on the engine.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  int  $perPage
      * @param  int  $page
      * @return mixed
@@ -130,8 +127,6 @@ class AlgoliaEngine extends Engine
     /**
      * Perform the given search on the engine.
      *
-     * @param  \Laravel\Scout\Builder  $builder
-     * @param  array  $options
      * @return mixed
      */
     protected function performSearch(Builder $builder, array $options = [])
@@ -157,7 +152,6 @@ class AlgoliaEngine extends Engine
     /**
      * Get the filter array for the query.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @return array
      */
     protected function filters(Builder $builder)
@@ -191,7 +185,6 @@ class AlgoliaEngine extends Engine
     /**
      * Map the given results to instances of the given model.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  mixed  $results
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return \Illuminate\Database\Eloquent\Collection
@@ -228,7 +221,6 @@ class AlgoliaEngine extends Engine
     /**
      * Map the given results to instances of the given model via a lazy collection.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  mixed  $results
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return \Illuminate\Support\LazyCollection
@@ -289,7 +281,6 @@ class AlgoliaEngine extends Engine
      * Create a search index.
      *
      * @param  string  $name
-     * @param  array  $options
      * @return mixed
      *
      * @throws \Exception

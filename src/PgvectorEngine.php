@@ -18,7 +18,7 @@ class PgvectorEngine extends Engine
     /**
      * Update the given model in the index.
      *
-     * @param Collection<int, EmbeddableModel> $models
+     * @param  Collection<int, EmbeddableModel>  $models
      * @return void
      */
     public function update($models)
@@ -35,13 +35,12 @@ class PgvectorEngine extends Engine
     /**
      * Perform the given search on the engine.
      *
-     * @param Builder $builder
      * @return Collection<int, Model>
      */
     public function search(Builder $builder): Collection
     {
         if (blank($builder->query)) {
-            return new Collection();
+            return new Collection;
         }
 
         $searchVector = FetchEmbedding::handle($builder->query);
@@ -89,7 +88,7 @@ class PgvectorEngine extends Engine
     /**
      * Flush all of the model's records from the engine.
      *
-     * @param Model $model
+     * @param  Model  $model
      * @return void
      */
     public function flush($model)
@@ -128,9 +127,6 @@ class PgvectorEngine extends Engine
     /**
      * Get the total count from a raw result returned by the engine.
      *
-     * @param Builder $builder
-     * @param $results
-     * @param $model
      * @return Collection
      */
     public function map(Builder $builder, $results, $model)
@@ -151,8 +147,10 @@ class PgvectorEngine extends Engine
             if (isset($models[$embedding->embeddable_id])) {
                 $model = $models[$embedding->embeddable_id];
                 $model->setRelation('embedding', $embedding);
+
                 return $model;
             }
+
             return null;
         })->filter();
     }
@@ -160,12 +158,11 @@ class PgvectorEngine extends Engine
     /**
      * Get the total count from a raw result returned by the engine.
      *
-     * @param mixed $results
-     * @return int
+     * @param  mixed  $results
      */
     public function getTotalCount($results): int
     {
-        if($results instanceof Collection) {
+        if ($results instanceof Collection) {
             return $results->count();
         }
 

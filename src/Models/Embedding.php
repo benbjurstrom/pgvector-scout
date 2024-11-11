@@ -4,13 +4,12 @@ namespace BenBjurstrom\PgvectorScout\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Pgvector\Laravel\Vector;
 use Pgvector\Laravel\HasNeighbors;
+use Pgvector\Laravel\Vector;
 
 class Embedding extends Model
 {
-    use HasNeighbors, HasFactory;
+    use HasFactory, HasNeighbors;
 
     /**
      * The attributes that aren't mass assignable.

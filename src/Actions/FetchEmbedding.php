@@ -10,8 +10,8 @@ class FetchEmbedding
     /**
      * Get vector for search query.
      *
-     * @param string|Vector $query String to be vectorized or Vector instance
-     * @return Vector
+     * @param  string|Vector  $query  String to be vectorized or Vector instance
+     *
      * @throws RuntimeException|\Exception If the handler class is not properly configured
      */
     public static function handle(string|Vector $query): Vector
@@ -24,13 +24,13 @@ class FetchEmbedding
         $embeddingModel = config('pgvector-scout.embedding.model');
         $handlerClass = config('pgvector-scout.embedding.handler');
 
-        if (!class_exists($handlerClass)) {
+        if (! class_exists($handlerClass)) {
             throw new RuntimeException(
                 "Embedding handler class '{$handlerClass}' does not exist. Check your pgvector-scout config."
             );
         }
 
-        if (!is_subclass_of($handlerClass, \BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler::class)) {
+        if (! is_subclass_of($handlerClass, \BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler::class)) {
             throw new RuntimeException(
                 "Embedding handler class '{$handlerClass}' must implement EmbeddingHandler interface."
             );

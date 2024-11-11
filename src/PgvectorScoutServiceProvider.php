@@ -2,11 +2,10 @@
 
 namespace BenBjurstrom\PgvectorScout;
 
+use Laravel\Scout\EngineManager;
+use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use BenBjurstrom\PgvectorScout\Commands\PgvectorScoutCommand;
-use Spatie\LaravelPackageTools\Commands\InstallCommand;
-use Laravel\Scout\EngineManager;
 
 class PgvectorScoutServiceProvider extends PackageServiceProvider
 {
@@ -23,12 +22,12 @@ class PgvectorScoutServiceProvider extends PackageServiceProvider
             ->hasViews()
             ->hasMigration('create_embeddings_table')
             ->runsMigrations()
-            ->hasInstallCommand(function(InstallCommand $command) {
+            ->hasInstallCommand(function (InstallCommand $command) {
                 $command
                     ->publishConfigFile()
                     ->publishMigrations()
                     ->askToRunMigrations();
-                    //->askToStarRepoOnGitHub();
+                //->askToStarRepoOnGitHub();
             });
     }
 
@@ -37,7 +36,7 @@ class PgvectorScoutServiceProvider extends PackageServiceProvider
         parent::boot();
 
         resolve(EngineManager::class)->extend('pgvector', function () {
-            return new PgvectorEngine();
+            return new PgvectorEngine;
         });
     }
 }

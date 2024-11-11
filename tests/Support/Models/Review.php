@@ -1,14 +1,15 @@
 <?php
 
 namespace BenBjurstrom\PgvectorScout\Tests\Support\Models;
+
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use BenBjurstrom\PgvectorScout\Tests\Support\Factories\ReviewFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Review extends EmbeddableModel
 {
-   use HasFactory;
+    use HasFactory;
 
     protected static function newFactory(): Factory
     {
@@ -27,5 +28,4 @@ class Review extends EmbeddableModel
             'text' => $this->text,
         ];
     }
-
 }

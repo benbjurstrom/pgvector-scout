@@ -3,16 +3,16 @@
 namespace BenBjurstrom\PgvectorScout;
 
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Arr;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Attributes\SearchUsingFullText;
 use Laravel\Scout\Attributes\SearchUsingPrefix;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Contracts\PaginatesEloquentModelsUsingDatabase;
-use ReflectionMethod;
 use Laravel\Scout\Engines\Engine;
+use ReflectionMethod;
 
 class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatabase
 {
@@ -40,7 +40,7 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Remove the given model from the index.
      *
-     * @param Collection<int, EmbeddableModel> $models
+     * @param  Collection<int, EmbeddableModel>  $models
      * @return void
      */
     public function delete($models)
@@ -51,7 +51,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Perform the given search on the engine.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @return mixed
      */
     public function search(Builder $builder)
@@ -67,7 +66,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Paginate the given search on the engine.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  int  $perPage
      * @param  int  $page
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
@@ -80,7 +78,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Paginate the given search on the engine.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  int  $perPage
      * @param  string  $pageName
      * @param  int  $page
@@ -103,7 +100,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Paginate the given search on the engine using simple pagination.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  int  $perPage
      * @param  int  $page
      * @return \Illuminate\Contracts\Pagination\Paginator
@@ -138,7 +134,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Get the Eloquent models for the given builder.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  int|null  $page
      * @param  int|null  $perPage
      * @return Collection
@@ -163,7 +158,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Initialize / build the search query for the given Scout builder.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @return \Illuminate\Database\Eloquent\Builder
      */
     protected function buildSearchQuery(Builder $builder)
@@ -183,10 +177,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Build the initial text search database query for all relevant columns.
      *
-     * @param  \Laravel\Scout\Builder  $builder
-     * @param  array  $columns
-     * @param  array  $prefixColumns
-     * @param  array  $fullTextColumns
      * @return \Illuminate\Database\Eloquent\Builder
      */
     protected function initializeSearchQuery(Builder $builder, array $columns, array $prefixColumns = [], array $fullTextColumns = [])
@@ -234,7 +224,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Add additional, developer defined constraints to the search query.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -285,7 +274,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Get the full-text columns for the query.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @return array
      */
     protected function getFullTextColumns(Builder $builder)
@@ -296,7 +284,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Get the prefix search columns for the query.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @return array
      */
     protected function getPrefixColumns(Builder $builder)
@@ -307,7 +294,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Get the columns marked with a given attribute.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  string  $attributeClass
      * @return array
      */
@@ -333,7 +319,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Get the full-text search options for the query.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @return array
      */
     protected function getFullTextOptions(Builder $builder)
@@ -371,7 +356,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Map the given results to instances of the given model.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  mixed  $results
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return Collection
@@ -384,7 +368,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
     /**
      * Map the given results to instances of the given model via a lazy collection.
      *
-     * @param  \Laravel\Scout\Builder  $builder
      * @param  mixed  $results
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return \Illuminate\Support\LazyCollection
@@ -420,7 +403,6 @@ class DatabaseEngine extends Engine implements PaginatesEloquentModelsUsingDatab
      * Create a search index.
      *
      * @param  string  $name
-     * @param  array  $options
      * @return mixed
      *
      * @throws \Exception

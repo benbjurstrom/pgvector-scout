@@ -17,10 +17,6 @@ class SearchEmbedding
     /**
      * Search for embeddings using vector similarity
      *
-     * @param Builder $builder
-     * @param Vector $searchVector
-     * @param ?int $perPage
-     * @param ?int $page
      * @return Collection|LengthAwarePaginator
      */
     public static function handle(
@@ -35,7 +31,7 @@ class SearchEmbedding
         $query = Embedding::query()
             ->where('embeddable_type', $model->getMorphClass());
 
-        $query->whereHas('embeddable', function($query) use ($builder, $model) {
+        $query->whereHas('embeddable', function ($query) use ($builder, $model) {
             if ($builder->wheres) {
                 foreach ($builder->wheres as $key => $value) {
                     $query->where($key, $value);
@@ -59,12 +55,10 @@ class SearchEmbedding
         return $query->get();
     }
 
-
     /**
      * Determine if model uses soft deletes.
      *
      * @param  Model  $model
-     * @return bool
      */
     protected static function usesSoftDelete($model): bool
     {

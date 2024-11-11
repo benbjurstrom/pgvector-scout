@@ -1,6 +1,5 @@
 <?php
 
-
 namespace BenBjurstrom\PgvectorScout\Actions;
 
 use Ramsey\Uuid\Uuid;

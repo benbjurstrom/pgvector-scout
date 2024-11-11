@@ -11,9 +11,6 @@ class FakeVectorHandler implements EmbeddingHandler
     /**
      * Get a Fake vector for a given input
      *
-     * @param string $input
-     * @param string $embeddingModel
-     * @return Vector
      * @throws RuntimeException
      */
     public static function handle(string $input, string $embeddingModel): Vector

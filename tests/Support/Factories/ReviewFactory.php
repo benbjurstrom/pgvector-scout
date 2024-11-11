@@ -3,7 +3,6 @@
 namespace BenBjurstrom\PgvectorScout\Tests\Support\Factories;
 
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\Review;
-use BenBjurstrom\PgvectorScout\Tests\Support\Models\ReviewSoftDelete;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ReviewFactory extends Factory

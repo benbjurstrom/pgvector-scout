@@ -14,20 +14,17 @@ class OpenAiHandler implements EmbeddingHandler
     /**
      * Get OpenAI embeddings for a given input
      *
-     * @param string $input
-     * @param string $embeddingModel
-     * @return Vector
      * @throws RuntimeException
      */
     public static function handle(string $input, string $embeddingModel): Vector
     {
-        $cacheKey = 'openai_embedding:' . sha1($input . $embeddingModel);
+        $cacheKey = 'openai_embedding:'.sha1($input.$embeddingModel);
 
         $embedding = Cache::rememberForever($cacheKey, function () use ($input, $embeddingModel) {
             $apiKey = static::getApiKey();
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
             ])->post('https://api.openai.com/v1/embeddings', [
                 'input' => $input,
@@ -35,6 +32,7 @@ class OpenAiHandler implements EmbeddingHandler
             ]);
 
             static::validateResponse($response);
+
             return static::extractEmbedding($response);
         });
 
@@ -64,9 +62,9 @@ class OpenAiHandler implements EmbeddingHandler
      */
     protected static function validateResponse(Response $response): void
     {
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new RuntimeException(
-                'OpenAI API request failed: ' . ($response['error']['message'] ?? $response->body())
+                'OpenAI API request failed: '.($response['error']['message'] ?? $response->body())
             );
         }
     }
@@ -82,7 +80,7 @@ class OpenAiHandler implements EmbeddingHandler
 
         if (empty($embedding)) {
             throw new RuntimeException(
-                'No embedding found in OpenAI response: ' . $response->body()
+                'No embedding found in OpenAI response: '.$response->body()
             );
         }
 
