@@ -3,18 +3,18 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Default Handler Configuration
+    | Default Embedding Handler
     |--------------------------------------------------------------------------
     |
-    | This option controls which handler configuration to use by default.
-    | You can change this to any of the handlers defined below.
+    | This option controls which embedding handler to use by default. You can
+    | change this to any of the handlers defined below or create your own.
     |
     */
     'default' => env('EMBEDDING_HANDLER', 'openai'),
 
     /*
     |--------------------------------------------------------------------------
-    | Handler Configurations
+    | Embedding Handler Configurations
     |--------------------------------------------------------------------------
     |
     | Here you can define the configuration for different embedding handlers.
