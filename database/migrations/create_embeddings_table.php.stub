@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
 
 return new class extends Migration
 {
@@ -15,16 +16,14 @@ return new class extends Migration
         // First ensure the pgvector extension is installed
         DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
 
-        $default = config('pgvector-scout.default');
-        $table = config("pgvector-scout.handlers.{$default}.table", 'embeddings');
-        $dimensions = config("pgvector-scout.handlers.{$default}.dimensions", 1536);
+        $config = HandlerConfig::fromConfig();
 
-        Schema::create($table, function (Blueprint $table) use ($dimensions) {
+        Schema::create($config->table, function (Blueprint $table) use ($config) {
             $table->id();
             $table->morphs('embeddable');
             $table->string('embedding_model');
             $table->uuid('content_hash');
-            $table->vector('embedding', $dimensions);
+            $table->vector('embedding', $config->dimensions);
             $table->timestamps();
 
             // Add indexes
@@ -41,9 +40,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $default = config('pgvector-scout.default');
-        $table = config("pgvector-scout.handlers.{$default}.table", 'embeddings');
-        
+        $config = HandlerConfig::fromConfig();
+        $table = $config->table;
+
         Schema::dropIfExists($table);
     }
 };

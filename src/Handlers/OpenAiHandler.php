@@ -2,8 +2,8 @@
 
 namespace BenBjurstrom\PgvectorScout\Handlers;
 
-use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
 use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
+use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;

@@ -3,7 +3,6 @@
 namespace BenBjurstrom\PgvectorScout\Tests;
 
 use BenBjurstrom\PgvectorScout\PgvectorScoutServiceProvider;
-use BenBjurstrom\PgvectorScout\Tests\Support\FakeVectorHandler;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Laravel\Scout\EngineManager;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -35,7 +34,7 @@ class TestCase extends Orchestra
         config()->set('database.default', 'pgsql');
         config()->set('database.connections.pgsql.username', 'postgres');
         config()->set('scout.driver', 'pgvector');
-        config()->set('pgvector-scout.embedding.handler', FakeVectorHandler::class);
+        config()->set('pgvector-scout.default', 'fake');
 
         // Load the embeddings table migration
         //        $migration = include __DIR__.'/../database/migrations/create_embeddings_table.php.stub';

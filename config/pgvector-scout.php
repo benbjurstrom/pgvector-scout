@@ -30,5 +30,13 @@ return [
             'api_key' => env('OPENAI_API_KEY'),
             'table' => 'embeddings',
         ],
+        'fake' => [
+            'class' => \BenBjurstrom\PgvectorScout\Handlers\FakeHandler::class,
+            'model' => 'fake',
+            'dimensions' => 3,
+            'url' => 'https://example.com',
+            'api_key' => '123',
+            'table' => 'embeddings',
+        ],
     ],
 ];

@@ -5,6 +5,7 @@ namespace BenBjurstrom\PgvectorScout;
 use BenBjurstrom\PgvectorScout\Actions\CreateEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\FetchEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\SearchEmbedding;
+use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Collection;
@@ -28,8 +29,9 @@ class PgvectorEngine extends Engine
             return;
         }
 
-        $models->each(function (EmbeddableModel $model) {
-            CreateEmbedding::handle($model);
+        $config = HandlerConfig::fromConfig();
+        $models->each(function (EmbeddableModel $model) use ($config) {
+            CreateEmbedding::handle($model, $config);
         });
     }
 

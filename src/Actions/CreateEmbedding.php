@@ -2,6 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Actions;
 
+use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Support\Str;
@@ -12,8 +13,10 @@ class CreateEmbedding
     /**
      * Create or update an embedding for a given model
      */
-    public static function handle(EmbeddableModel $model): ?Embedding
-    {
+    public static function handle(
+        EmbeddableModel $model,
+        HandlerConfig $config
+    ): ?Embedding {
         // Get the searchable data
         $searchableData = $model->toSearchableArray();
         if (empty($searchableData)) {
@@ -30,14 +33,14 @@ class CreateEmbedding
 
         // Check if we already have a vector for this model with the same hash
         $contentHash = HashContent::handle($content);
-        if ($embedding = static::existingEmbedding($model, $contentHash)) {
+        if ($embedding = static::existingEmbedding($model, $contentHash, $config)) {
             return $embedding;
         }
 
         // If not fetch an embedding for the content and save it
-        $vector = FetchEmbedding::handle($content);
+        $vector = $config->class::handle($content, $config);
 
-        return static::updateOrCreateEmbedding($model, $contentHash, $vector);
+        return static::updateOrCreateEmbedding($model, $contentHash, $vector, $config);
     }
 
     /**
@@ -77,14 +80,13 @@ class CreateEmbedding
     protected static function existingEmbedding(
         EmbeddableModel $model,
         string $contentHash,
+        HandlerConfig $config
     ): ?Embedding {
-        $embeddingModel = config('pgvector-scout.embedding.model');
-
         return Embedding::query()
             ->where('embeddable_type', get_class($model))
             ->where('embeddable_id', $model->getKey())
             ->where('content_hash', $contentHash)
-            ->where('embedding_model', $embeddingModel)
+            ->where('embedding_model', $config->model)
             ->first();
     }
 
@@ -94,7 +96,8 @@ class CreateEmbedding
     protected static function updateOrCreateEmbedding(
         EmbeddableModel $model,
         string $contentHash,
-        Vector $vector
+        Vector $vector,
+        HandlerConfig $config
     ): Embedding {
         return Embedding::updateOrCreate(
             [
@@ -102,7 +105,7 @@ class CreateEmbedding
                 'embeddable_id' => $model->getKey(),
             ],
             [
-                'embedding_model' => config('pgvector-scout.embedding.model'),
+                'embedding_model' => $config->model,
                 'content_hash' => $contentHash,
                 'embedding' => $vector,
             ]

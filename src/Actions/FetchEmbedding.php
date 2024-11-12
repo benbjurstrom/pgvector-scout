@@ -2,6 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Actions;
 
+use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
 use Pgvector\Laravel\Vector;
 use RuntimeException;
 
@@ -21,21 +22,8 @@ class FetchEmbedding
             return $query;
         }
 
-        $embeddingModel = config('pgvector-scout.embedding.model');
-        $handlerClass = config('pgvector-scout.embedding.handler');
+        $config = HandlerConfig::fromConfig();
 
-        if (! class_exists($handlerClass)) {
-            throw new RuntimeException(
-                "Embedding handler class '{$handlerClass}' does not exist. Check your pgvector-scout config."
-            );
-        }
-
-        if (! is_subclass_of($handlerClass, \BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler::class)) {
-            throw new RuntimeException(
-                "Embedding handler class '{$handlerClass}' must implement EmbeddingHandler interface."
-            );
-        }
-
-        return $handlerClass::handle($query, $embeddingModel);
+        return $config->class::handle($query, $config);
     }
 }

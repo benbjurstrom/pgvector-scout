@@ -2,6 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Config;
 
+use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
 use RuntimeException;
 
 class HandlerConfig
@@ -55,6 +56,12 @@ class HandlerConfig
             throw new RuntimeException("Handler class '{$this->class}' does not exist.");
         }
 
+        if (! is_subclass_of($this->class, EmbeddingHandler::class)) {
+            throw new RuntimeException(
+                "Embedding handler class '{$this->class}' must implement EmbeddingHandler interface."
+            );
+        }
+
         if ($this->dimensions < 1) {
             throw new RuntimeException('Dimensions must be greater than 0.');
         }
@@ -71,4 +78,4 @@ class HandlerConfig
             throw new RuntimeException('API key cannot be empty.');
         }
     }
-} 
+}

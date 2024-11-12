@@ -40,19 +40,13 @@ class Embedding extends Model
         'embedding' => Vector::class,
     ];
 
-    public function __construct(array $attributes = [])
-    {
-        parent::__construct($attributes);
-
-        $this->setTable($this->getTableName());
-    }
-
     /**
      * Get the configured table name for the current default handler
      */
     protected function getTableName(): string
     {
         $default = config('pgvector-scout.default');
+
         return config("pgvector-scout.handlers.{$default}.table", 'embeddings');
     }
 

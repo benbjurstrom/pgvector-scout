@@ -1,19 +1,20 @@
 <?php
 
-namespace BenBjurstrom\PgvectorScout\Tests\Support;
+namespace BenBjurstrom\PgvectorScout\Handlers;
 
+use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
 use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
 use Pgvector\Laravel\Vector;
 use RuntimeException;
 
-class FakeVectorHandler implements EmbeddingHandler
+class FakeHandler implements EmbeddingHandler
 {
     /**
      * Get a Fake vector for a given input
      *
      * @throws RuntimeException
      */
-    public static function handle(string $input, string $embeddingModel): Vector
+    public static function handle(string $input, HandlerConfig $config): Vector
     {
         return new Vector(array_fill(0, 1536, 0.1));
     }
