@@ -1,6 +1,6 @@
 <?php
 
-use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
+use BenBjurstrom\PgvectorScout\HandlerConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use BenBjurstrom\PgvectorScout\PgvectorEngine;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\Review;
@@ -55,7 +55,7 @@ test('search method can filter by model properties', function () {
     expect($results->first()->embedding->neighbor_distance)->toBeFloat();
 });
 
-test('can search using existing vector', function (){
+test('can search using existing vector', function () {
     $config = HandlerConfig::fromConfig();
     $vector = new Vector(array_fill(0, $config->dimensions, 0.1));
 

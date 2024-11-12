@@ -2,14 +2,16 @@
 
 namespace BenBjurstrom\PgvectorScout\Tests\Support\Models;
 
-use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
+use BenBjurstrom\PgvectorScout\Models\Concerns\HasEmbeddings;
 use BenBjurstrom\PgvectorScout\Tests\Support\Factories\ReviewFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Laravel\Scout\Searchable;
 
-class Review extends EmbeddableModel
+class Review extends Model
 {
-    use HasFactory;
+    use HasEmbeddings, HasFactory, Searchable;
 
     protected static function newFactory(): Factory
     {

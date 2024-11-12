@@ -1,8 +1,7 @@
 <?php
 
-namespace BenBjurstrom\PgvectorScout\Config;
+namespace BenBjurstrom\PgvectorScout;
 
-use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
 use RuntimeException;
 
 class HandlerConfig
@@ -56,7 +55,7 @@ class HandlerConfig
             throw new RuntimeException("Handler class '{$this->class}' does not exist.");
         }
 
-        if (! is_subclass_of($this->class, EmbeddingHandler::class)) {
+        if (! is_subclass_of($this->class, HandlerContract::class)) {
             throw new RuntimeException(
                 "Embedding handler class '{$this->class}' must implement EmbeddingHandler interface."
             );

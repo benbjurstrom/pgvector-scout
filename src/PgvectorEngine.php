@@ -5,8 +5,6 @@ namespace BenBjurstrom\PgvectorScout;
 use BenBjurstrom\PgvectorScout\Actions\CreateEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\FetchEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\SearchEmbedding;
-use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
-use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -20,7 +18,7 @@ class PgvectorEngine extends Engine
     /**
      * Update the given model in the index.
      *
-     * @param  Collection<int, EmbeddableModel>  $models
+     * @param  Collection<int, Model>  $models
      * @return void
      */
     public function update($models)
@@ -30,7 +28,7 @@ class PgvectorEngine extends Engine
         }
 
         $config = HandlerConfig::fromConfig();
-        $models->each(function (EmbeddableModel $model) use ($config) {
+        $models->each(function (Model $model) use ($config) {
             CreateEmbedding::handle($model, $config);
         });
     }
@@ -118,7 +116,7 @@ class PgvectorEngine extends Engine
     /**
      * Remove the given model from the index.
      *
-     * @param  Collection<int, EmbeddableModel>  $models
+     * @param  Collection<int, Model>  $models
      * @return void
      */
     public function delete($models)

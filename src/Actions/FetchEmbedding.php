@@ -2,7 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Actions;
 
-use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
+use BenBjurstrom\PgvectorScout\HandlerConfig;
 use Pgvector\Laravel\Vector;
 use RuntimeException;
 

@@ -2,12 +2,12 @@
 
 namespace BenBjurstrom\PgvectorScout\Handlers;
 
-use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
-use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
+use BenBjurstrom\PgvectorScout\HandlerConfig;
+use BenBjurstrom\PgvectorScout\HandlerContract;
 use Pgvector\Laravel\Vector;
 use RuntimeException;
 
-class FakeHandler implements EmbeddingHandler
+class FakeHandler implements HandlerContract
 {
     /**
      * Get a Fake vector for a given input

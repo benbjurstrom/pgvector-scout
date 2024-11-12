@@ -2,15 +2,15 @@
 
 namespace BenBjurstrom\PgvectorScout\Handlers;
 
-use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
-use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
+use BenBjurstrom\PgvectorScout\HandlerConfig;
+use BenBjurstrom\PgvectorScout\HandlerContract;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Pgvector\Laravel\Vector;
 use RuntimeException;
 
-class OpenAiHandler implements EmbeddingHandler
+class OpenAiHandler implements HandlerContract
 {
     /**
      * Get OpenAI embeddings for a given input

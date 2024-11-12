@@ -2,9 +2,9 @@
 
 namespace BenBjurstrom\PgvectorScout\Actions;
 
-use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
-use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
+use BenBjurstrom\PgvectorScout\HandlerConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Pgvector\Laravel\Vector;
 
@@ -14,9 +14,15 @@ class CreateEmbedding
      * Create or update an embedding for a given model
      */
     public static function handle(
-        EmbeddableModel $model,
+        Model $model,
         HandlerConfig $config
     ): ?Embedding {
+
+        // validate the model is searchable
+        if (! method_exists($model, 'toSearchableArray') || ! method_exists($model, 'scoutMetadata')) {
+            throw new \RuntimeException('Model '.get_class($model).' does not implement the Searchable trait.');
+        }
+
         // Get the searchable data
         $searchableData = $model->toSearchableArray();
         if (empty($searchableData)) {
@@ -78,7 +84,7 @@ class CreateEmbedding
      * Find existing embedding with matching hash
      */
     protected static function existingEmbedding(
-        EmbeddableModel $model,
+        Model $model,
         string $contentHash,
         HandlerConfig $config
     ): ?Embedding {
@@ -94,7 +100,7 @@ class CreateEmbedding
      * Create or update embedding record
      */
     protected static function updateOrCreateEmbedding(
-        EmbeddableModel $model,
+        Model $model,
         string $contentHash,
         Vector $vector,
         HandlerConfig $config

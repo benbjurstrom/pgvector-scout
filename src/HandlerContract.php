@@ -1,11 +1,10 @@
 <?php
 
-namespace BenBjurstrom\PgvectorScout\Contracts;
+namespace BenBjurstrom\PgvectorScout;
 
-use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
 use Pgvector\Laravel\Vector;
 
-interface EmbeddingHandler
+interface HandlerContract
 {
     /**
      * Generate an embedding vector for the given input

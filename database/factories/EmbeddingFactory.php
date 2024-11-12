@@ -2,7 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Database\Factories;
 
-use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
+use BenBjurstrom\PgvectorScout\HandlerConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +16,7 @@ class EmbeddingFactory extends Factory
     public function definition(): array
     {
         $config = HandlerConfig::fromConfig();
+
         return [
             'embeddable_type' => $this->faker->word,
             'embeddable_id' => $this->faker->randomNumber(),
