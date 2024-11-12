@@ -7,7 +7,6 @@ use BenBjurstrom\PgvectorScout\Actions\FetchEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\SearchEmbedding;
 use BenBjurstrom\PgvectorScout\Models\Concerns\EmbeddableModel;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
-use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -48,16 +47,12 @@ class PgvectorEngine extends Engine
 
         $searchVector = FetchEmbedding::handle($builder->query);
 
-        $result = SearchEmbedding::handle(
+        $query = SearchEmbedding::handle(
             $builder,
             $searchVector
         );
 
-        if ($result instanceof LengthAwarePaginator) {
-            throw new Exception('LengthAwarePaginator not supported');
-        }
-
-        return $result;
+        return $query->get();
     }
 
     /**
@@ -74,18 +69,12 @@ class PgvectorEngine extends Engine
 
         $searchVector = FetchEmbedding::handle($builder->query);
 
-        $result = SearchEmbedding::handle(
+        $query = SearchEmbedding::handle(
             $builder,
-            $searchVector,
-            $perPage,
-            $page
+            $searchVector
         );
 
-        if (! $result instanceof LengthAwarePaginator) {
-            throw new Exception('LengthAwarePaginator required');
-        }
-
-        return $result;
+        return $query->paginate($perPage, pageName: 'page', page: $page);
     }
 
     /**
@@ -125,7 +114,7 @@ class PgvectorEngine extends Engine
     }
 
     /**
-     * Update the given model in the index.
+     * Remove the given model from the index.
      *
      * @param  Collection<int, EmbeddableModel>  $models
      * @return void
@@ -144,7 +133,7 @@ class PgvectorEngine extends Engine
     }
 
     /**
-     * Map the given results to instances of the given model.
+     * Pluck and return the primary keys of the given results.
      *
      * @param  Collection<int, Embedding>  $results
      * @return \Illuminate\Support\Collection<int, mixed>
@@ -168,7 +157,7 @@ class PgvectorEngine extends Engine
     }
 
     /**
-     * Get the total count from a raw result returned by the engine.
+     * Map the given results to instances of the given model.
      *
      * @param  Builder<Model>  $builder
      * @param  Collection<int, Embedding>  $results

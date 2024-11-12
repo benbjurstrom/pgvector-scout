@@ -3,10 +3,8 @@
 namespace BenBjurstrom\PgvectorScout\Actions;
 
 use BenBjurstrom\PgvectorScout\Models\Embedding;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Builder;
 use Pgvector\Laravel\Distance;
@@ -18,13 +16,11 @@ class SearchEmbedding
      * Search for embeddings using vector similarity
      *
      * @param  Builder<Model>  $builder
-     * @return Collection<int, Embedding>|LengthAwarePaginator<Embedding>
+     * @return \Illuminate\Database\Eloquent\Builder<Embedding>
      */
     public static function handle(
         Builder $builder,
-        Vector $searchVector,
-        ?int $perPage = null,
-        ?int $page = null
+        Vector $searchVector
     ) {
         DB::connection()->enableQueryLog();
 
@@ -46,11 +42,7 @@ class SearchEmbedding
 
         $query->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
 
-        if ($perPage) {
-            return $query->paginate($perPage, pageName: 'page', page: $page);
-        }
-
-        return $query->get();
+        return $query;
     }
 
     /**
