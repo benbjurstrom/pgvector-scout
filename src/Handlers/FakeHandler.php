@@ -16,6 +16,6 @@ class FakeHandler implements EmbeddingHandler
      */
     public static function handle(string $input, HandlerConfig $config): Vector
     {
-        return new Vector(array_fill(0, 1536, 0.1));
+        return new Vector(array_fill(0, $config->dimensions, 0.1));
     }
 }

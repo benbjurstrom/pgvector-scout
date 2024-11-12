@@ -17,8 +17,9 @@ return new class extends Migration
         DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
 
         $config = HandlerConfig::fromConfig();
+        $table = $config->table;
 
-        Schema::create($config->table, function (Blueprint $table) use ($config) {
+        Schema::create($table, function (Blueprint $table) use ($config) {
             $table->id();
             $table->morphs('embeddable');
             $table->string('embedding_model');

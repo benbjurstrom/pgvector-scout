@@ -1,5 +1,6 @@
 <?php
 
+use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use BenBjurstrom\PgvectorScout\PgvectorEngine;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\Review;
@@ -9,6 +10,14 @@ use Pgvector\Laravel\Vector;
 
 beforeEach(function () {
     $this->engine = new PgvectorEngine;
+
+    // Load the reviews table migration for testing
+    $migration = include __DIR__.'/Support/Migrations/2024_11_06_150840_create_reviews_table.php';
+    $migration->up();
+
+    // Load the embeddings table migration
+    $migration = include __DIR__.'/../database/migrations/create_embeddings_table.php.stub';
+    $migration->up();
 });
 
 test('update method calls CreateEmbedding for each model', function () {
@@ -30,16 +39,12 @@ test('search method can filter by model properties', function () {
 
     // Create embeddings for the models using factory
     Embedding::factory()->forModel($review1)->create();
-    Embedding::factory()->forModel($review2)->embedding1()->create();
-    Embedding::factory()->forModel($review3)->embedding1()->create();
+    Embedding::factory()->forModel($review2)->create();
+    Embedding::factory()->forModel($review3)->create();
     Embedding::factory()->forModel($review4)->create();
 
-    // Create a Scout builder instance with a search query
-    $vector = new Vector(array_fill(0, 1536, 0.1));
-    $builder = Review::search($vector);
-
     // Perform the search
-    $results = Review::search($vector)->where('score', 3)->get();
+    $results = Review::search('test')->where('score', 3)->get();
 
     // Verify the results contain the expected number of items
     expect($results)->toHaveCount(2);
@@ -48,6 +53,19 @@ test('search method can filter by model properties', function () {
     $resultIds = $results->pluck('id')->toArray();
     expect($resultIds)->toContain($review2->id, $review3->id);
     expect($results->first()->embedding->neighbor_distance)->toBeFloat();
+});
+
+test('can search using existing vector', function (){
+    $config = HandlerConfig::fromConfig();
+    $vector = new Vector(array_fill(0, $config->dimensions, 0.1));
+
+    Review::factory()->create(['score' => 5]);
+    Review::factory()->create(['score' => 3]);
+
+    $results = Review::search($vector)->get();
+
+    // Verify the results contain the expected number of items
+    expect($results)->toHaveCount(2);
 });
 
 test('delete method removes embeddings for given models', function () {
@@ -143,10 +161,9 @@ test('paginate returns correct number of results and pagination metadata', funct
     });
 
     // Create a Scout builder instance with a search query
-    $vector = new Vector(array_fill(0, 1536, 0.0));
 
     // Test first page
-    $results = Review::search($vector)->paginate(5, page: 1);
+    $results = Review::search('test')->paginate(5, page: 1);
     expect($results)
         ->toHaveCount(5)
         ->and($results->currentPage())->toBe(1)
@@ -154,7 +171,7 @@ test('paginate returns correct number of results and pagination metadata', funct
         ->and($results->lastPage())->toBe(3);
 
     // Test second page
-    $results = Review::search($vector)->paginate(5, page: 2);
+    $results = Review::search('test')->paginate(5, page: 2);
     expect($results)
         ->toHaveCount(5)
         ->and($results->currentPage())->toBe(2)
@@ -162,7 +179,7 @@ test('paginate returns correct number of results and pagination metadata', funct
         ->and($results->hasMorePages())->toBeTrue();
 
     // Test last page
-    $results = Review::search($vector)->paginate(5, page: 3);
+    $results = Review::search('test')->paginate(5, page: 3);
     expect($results)
         ->toHaveCount(4)
         ->and($results->currentPage())->toBe(3)
@@ -195,10 +212,8 @@ test('paginate handles out of range pages', function () {
             ->create();
     });
 
-    $vector = new Vector(array_fill(0, 1536, 0.0));
-
     // Test page beyond available results
-    $results = Review::search($vector)->paginate(5, page: 3);
+    $results = Review::search('test')->paginate(5, page: 3);
     expect($results)
         ->toHaveCount(0)
         ->and($results->total())->toBe(8)
@@ -223,8 +238,7 @@ test('paginate respects where constraints', function () {
             ->create();
     });
 
-    $vector = new Vector(array_fill(0, 1536, 0.0));
-    $results = Review::search($vector)
+    $results = Review::search('test')
         ->where('score', 5)
         ->paginate(2, page: 1);
 
