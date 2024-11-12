@@ -1,37 +1,61 @@
 # Pgvector driver for Laravel Scout
 
+Use pgvector with Laravel Scout for fast vector similarity search.
+
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/benbjurstrom/pgvector-scout.svg?style=flat-square)](https://packagist.org/packages/benbjurstrom/pgvector-scout)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/benbjurstrom/pgvector-scout.svg?style=flat-square)](https://packagist.org/packages/benbjurstrom/pgvector-scout)
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+## 🚀 Quick Start
 
-## Support us
-
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/pgvector-scout.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/pgvector-scout)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
-
-## Installation
-
-You can install the package via composer:
-
+#### 1. Install the package using composer:
 ```bash
 composer require benbjurstrom/pgvector-scout
 ```
 
-You can publish and run the migrations with:
-
+#### 2. Publish and run the migrations:
 ```bash
 php artisan vendor:publish --tag="pgvector-scout-migrations"
 php artisan migrate
 ```
 
-You can publish the config file with:
+#### 3. Ensure the pgvector extension is available:
+```sql
+select * from pg_extension where extname='vector';
+```
 
+#### 4. Update the model you wish to make searchable:
+Add the `HasEmbeddings` and `Searchable` traits to your model and implement `toSearchableArray()` with the content you want converted into an embedding.
+
+```php
+use BenBjurstrom\PgvectorScout\Models\Concerns\HasEmbeddings;
+use Laravel\Scout\Searchable;
+
+class YourModel extends Model
+{
+    use HasEmbeddings, Searchable;
+
+    /**
+     * Get the indexable data array for the model.
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'title' => $this->title,
+            'content' => $this->content,
+        ];
+    }
+}
+```
+
+#### 5. Configure your environment:
+If you're using OpenAI to generate your embeddings be sure to add your API key to your `.env` file:
+```env
+OPENAI_API_KEY=your-api-key
+```
+
+#### 6. Publish the config:
 ```bash
 php artisan vendor:publish --tag="pgvector-scout-config"
 ```
@@ -81,56 +105,58 @@ return [
 ];
 ```
 
-Optionally, you can publish the views using
+## 🔍 Usage
+
+### Create embeddings for your models:
+Scout will automatically generate embeddings for your models when they are saved. If you want to manually generate embeddings for existing models you can use the artisan command below. See the [Scout documentation](https://laravel.com/docs/8.x/scout) for more information.
 
 ```bash
-php artisan vendor:publish --tag="pgvector-scout-views"
+artisan scout:import "App\Models\YourModel"
 ```
 
+### Search your models using vector similarity:
+```php
+// Search using a text query
+$results = YourModel::search('your search query')->get();
+```
 
-### Installing the pgvector extension
-Export environment variables to terminal either throught the UI or by running the following command:
+The text of your query will be converted into an embedding using the configured embedding handler.
 
+
+You can also search using an existing embedding to find related models:
+```php
+// Search using an existing embedding
+$results = YourModel::search($someModel->embedding->embedding)->get();
+```
+
+All search results will be ordered by similarity to the query and include the embedding relationship. The value of the nearest neighbor search can be accessed as follows:
+```php
+$results = YourModel::search('your search query')->get();
+$results->first()->embedding->neighbor_distance; // 1.0121312 (example value)
+```
+
+## Installing pgvector when using DBngin
+First, add PostgreSQL to your path:
 ```bash
 export PATH=/Users/Shared/DBngin/postgresql/14.3/bin:$PATH
 ```
 
+Then install pgvector:
 ```bash
 git clone https://github.com/pgvector/pgvector.git
 cd pgvector
 make && make install
 ```
 
-## Usage
+## 🤝 Contributing
 
-```php
-$pgvectorScout = new BenBjurstrom\PgvectorScout();
-echo $pgvectorScout->echoPhrase('Hello, BenBjurstrom!');
-```
+Contributions are welcome! Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-## Testing
-
-```bash
-composer test
-```
-
-## Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
-
-## Contributing
-
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
-
-## Credits
+## 👏 Credits
 
 - [Ben Bjurstrom](https://github.com/benbjurstrom)
 - [All Contributors](../../contributors)
 
-## License
+## 📝 License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
