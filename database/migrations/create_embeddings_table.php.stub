@@ -15,12 +15,16 @@ return new class extends Migration
         // First ensure the pgvector extension is installed
         DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
 
-        Schema::create('embeddings', function (Blueprint $table) {
+        $default = config('pgvector-scout.default');
+        $table = config("pgvector-scout.handlers.{$default}.table", 'embeddings');
+        $dimensions = config("pgvector-scout.handlers.{$default}.dimensions", 1536);
+
+        Schema::create($table, function (Blueprint $table) use ($dimensions) {
             $table->id();
             $table->morphs('embeddable');
             $table->string('embedding_model');
             $table->uuid('content_hash');
-            $table->vector('embedding', 1536); // Default OpenAI dimensions
+            $table->vector('embedding', $dimensions);
             $table->timestamps();
 
             // Add indexes
@@ -28,8 +32,8 @@ return new class extends Migration
             $table->unique(['embeddable_type', 'embeddable_id']);
         });
 
-        // Create HNSW index on the vector column - this is optional but recommended for larger datasets
-        DB::statement('CREATE INDEX embeddings_vector_idx ON embeddings USING hnsw (embedding vector_cosine_ops)');
+        // Create HNSW index on the vector column
+        DB::statement("CREATE INDEX {$table}_vector_idx ON {$table} USING hnsw (embedding vector_cosine_ops)");
     }
 
     /**
@@ -37,6 +41,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('embeddings');
+        $default = config('pgvector-scout.default');
+        $table = config("pgvector-scout.handlers.{$default}.table", 'embeddings');
+        
+        Schema::dropIfExists($table);
     }
 };

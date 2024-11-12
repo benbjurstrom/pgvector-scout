@@ -3,6 +3,7 @@
 namespace BenBjurstrom\PgvectorScout\Handlers;
 
 use BenBjurstrom\PgvectorScout\Contracts\EmbeddingHandler;
+use BenBjurstrom\PgvectorScout\Config\HandlerConfig;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -16,19 +17,17 @@ class OpenAiHandler implements EmbeddingHandler
      *
      * @throws RuntimeException
      */
-    public static function handle(string $input, string $embeddingModel): Vector
+    public static function handle(string $input, HandlerConfig $config): Vector
     {
-        $cacheKey = 'openai_embedding:'.sha1($input.$embeddingModel);
+        $cacheKey = 'openai_embedding:'.sha1($input.$config->model);
 
-        $embedding = Cache::rememberForever($cacheKey, function () use ($input, $embeddingModel) {
-            $apiKey = static::getApiKey();
-
+        $embedding = Cache::rememberForever($cacheKey, function () use ($input, $config) {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer '.$apiKey,
+                'Authorization' => 'Bearer '.$config->apiKey,
                 'Content-Type' => 'application/json',
-            ])->post('https://api.openai.com/v1/embeddings', [
+            ])->post($config->url.'/embeddings', [
                 'input' => $input,
-                'model' => $embeddingModel,
+                'model' => $config->model,
             ]);
 
             static::validateResponse($response);
@@ -37,22 +36,6 @@ class OpenAiHandler implements EmbeddingHandler
         });
 
         return new Vector($embedding);
-    }
-
-    /**
-     * Validate and return the OpenAI API key
-     *
-     * @throws RuntimeException
-     */
-    protected static function getApiKey(): string
-    {
-        $apiKey = config('services.openai.api_key');
-
-        if (empty($apiKey)) {
-            throw new RuntimeException('OpenAI API key not found. Please set your OpenAI API key in the `services.openai.api_key` config.');
-        }
-
-        return $apiKey;
     }
 
     /**

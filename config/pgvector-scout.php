@@ -3,16 +3,32 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Embedding Generation Configuration
+    | Default Handler Configuration
     |--------------------------------------------------------------------------
     |
-    | These options control how embeddings are generated. The 'handler' defines
-    | a class that implements the EmbeddingHandler interface. The 'model' is
-    | passed to the handler to determine which model to use.
+    | This option controls which handler configuration to use by default.
+    | You can change this to any of the handlers defined below.
     |
     */
-    'embedding' => [
-        'handler' => \BenBjurstrom\PgvectorScout\Handlers\OpenAiHandler::class,
-        'model' => 'text-embedding-3-small',
+    'default' => env('EMBEDDING_HANDLER', 'openai'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Handler Configurations
+    |--------------------------------------------------------------------------
+    |
+    | Here you can define the configuration for different embedding handlers.
+    | Each handler can have its own specific configuration options.
+    |
+    */
+    'handlers' => [
+        'openai' => [
+            'class' => \BenBjurstrom\PgvectorScout\Handlers\OpenAiHandler::class,
+            'model' => 'text-embedding-3-small',
+            'dimensions' => 1536,
+            'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
+            'api_key' => env('OPENAI_API_KEY'),
+            'table' => 'embeddings',
+        ],
     ],
 ];

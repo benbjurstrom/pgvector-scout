@@ -40,6 +40,19 @@ This is the contents of the published config file:
 
 ```php
 return [
+    /*
+     * The default handler to use for generating embeddings.
+     */
+    'default' => 'openai',
+
+    'handlers' => [
+        'openai' => [
+            'class' => \BenBjurstrom\PgvectorScout\Handlers\OpenAiHandler::class,
+            'default_model' => 'text-embedding-3-small',
+            'api_url' => env('OPENAI_API_URL', 'https://api.openai.com/v1'),
+            'api_key' => env('OPENAI_API_KEY'),
+        ],
+    ],
 ];
 ```
 
