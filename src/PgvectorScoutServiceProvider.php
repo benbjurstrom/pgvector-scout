@@ -26,8 +26,8 @@ class PgvectorScoutServiceProvider extends PackageServiceProvider
                 $command
                     ->publishConfigFile()
                     ->publishMigrations()
-                    ->askToRunMigrations();
-                //->askToStarRepoOnGitHub();
+                    ->askToRunMigrations()
+                    ->askToStarRepoOnGitHub();
             });
     }
 

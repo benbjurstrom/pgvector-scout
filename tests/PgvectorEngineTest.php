@@ -6,11 +6,11 @@ use BenBjurstrom\PgvectorScout\PgvectorEngine;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\Review;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\ReviewSoftDelete;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\LazyCollection;
 use Pgvector\Laravel\Vector;
 
 beforeEach(function () {
-    $this->engine = new PgvectorEngine;
-
     // Load the reviews table migration for testing
     $migration = include __DIR__.'/Support/Migrations/2024_11_06_150840_create_reviews_table.php';
     $migration->up();
@@ -30,19 +30,15 @@ test('update method calls CreateEmbedding for each model', function () {
     expect(Embedding::count())->toBe(2);
 });
 
+
 test('search method can filter by model properties', function () {
     // Create test models with different scores
-    $review1 = Review::factory()->createQuietly(['score' => 5]);
-    $review2 = Review::factory()->createQuietly(['score' => 3]);
-    $review3 = Review::factory()->createQuietly(['score' => 3]);
-    $review4 = Review::factory()->createQuietly(['score' => 1]);
+    $review1 = Review::factory()->create(['score' => 5]);
+    $review2 = Review::factory()->create(['score' => 3]);
+    $review3 = Review::factory()->create(['score' => 3]);
+    $review4 = Review::factory()->create(['score' => 1]);
 
-    // Create embeddings for the models using factory
-    Embedding::factory()->forModel($review1)->create();
-    Embedding::factory()->forModel($review2)->create();
-    Embedding::factory()->forModel($review3)->create();
-    Embedding::factory()->forModel($review4)->create();
-
+    DB::enableQueryLog();
     // Perform the search
     $results = Review::search('test')->where('score', 3)->get();
 
@@ -53,6 +49,45 @@ test('search method can filter by model properties', function () {
     $resultIds = $results->pluck('id')->toArray();
     expect($resultIds)->toContain($review2->id, $review3->id);
     expect($results->first()->embedding->neighbor_distance)->toBeFloat();
+
+    $queries = DB::getQueryLog();
+    expect($queries)->toHaveCount(3);
+});
+
+test('search method can order by model properties', function () {
+    // Create test models with different scores
+    $review4 = Review::factory()->create(['score' => 4]);
+    $review1 = Review::factory()->create(['score' => 1]);
+    $review2 = Review::factory()->create(['score' => 2]);
+    $review7 = Review::factory()->create(['score' => 7]);
+
+    // Perform the search
+    $results = Review::search('test')
+        ->orderBy('score', 'asc')
+        ->get();
+
+    // Verify the results contain the expected number of items
+    expect($results)->toHaveCount(4);
+
+    // Verify the results contain the expected models
+    $resultIds = $results->pluck('id')->toArray();
+    expect($resultIds)->toBe([$review4->id, $review1->id, $review2->id, $review7->id]);
+});
+
+test('search method can limit results', function () {
+    // Create test models with different scores
+    $review1 = Review::factory()->create(['score' => 5]);
+    $review2 = Review::factory()->create(['score' => 3]);
+    $review3 = Review::factory()->create(['score' => 3]);
+    $review4 = Review::factory()->create(['score' => 1]);
+
+    // Perform the search
+    $results = Review::search('test')
+        ->take(3)
+        ->get();
+
+    // Verify the results contain the expected number of items
+    expect($results)->toHaveCount(3);
 });
 
 test('can search using existing vector', function () {
@@ -94,7 +129,7 @@ test('delete method removes embeddings for given models', function () {
 });
 
 test('delete handles empty collection gracefully', function () {
-    $this->engine->delete(new Collection);
+    (new PgvectorEngine)->delete(new Collection);
 
     expect(true)->toBeTrue(); // Test passes if no exception is thrown
 });
@@ -116,7 +151,7 @@ test('delete removes multiple embeddings', function () {
     expect(Embedding::count())->toBe(3);
 
     // Delete all embeddings
-    $this->engine->delete($reviews);
+    (new PgvectorEngine)->delete($reviews);
 
     // Verify all embeddings were deleted
     expect(Embedding::count())->toBe(0);
@@ -125,27 +160,36 @@ test('delete removes multiple embeddings', function () {
 test('soft deleting a model does not delete its embedding if scout.soft_delete is true', function () {
 
     config()->set('scout.soft_delete', true);
-
-    // Create test model using factory
-    $review = ReviewSoftDelete::factory()->createQuietly();
-
-    // Create embedding for the model
-    $embedding = Embedding::factory()
-        ->forModel($review)
-        ->create();
+    $review = ReviewSoftDelete::factory()->create();
 
     // Verify embedding exists
     expect(Embedding::count())->toBe(1);
 
     // Soft delete the model
-    $review->deleteQuietly();
+    $review->delete();
 
     // Verify the model is soft deleted
     expect($review->trashed())->toBeTrue();
 
     // Verify the embedding still exists
     expect(Embedding::count())->toBe(1);
-    expect(Embedding::first()->id)->toBe($embedding->id);
+    expect(Embedding::first()->id)->toBe($review->embedding->id);
+});
+
+
+test('force deleting a model deletes its embedding even if scout.soft_delete is true', function () {
+
+    config()->set('scout.soft_delete', true);
+    $review = ReviewSoftDelete::factory()->create();
+
+    // Verify embedding exists
+    expect(Embedding::count())->toBe(1);
+
+    // Soft delete the model
+    $review->forceDelete();
+
+    // Verify the embedding still exists
+    expect(Embedding::count())->toBe(0);
 });
 
 test('paginate returns correct number of results and pagination metadata', function () {
@@ -270,4 +314,75 @@ test('flush method removes all embeddings for a given model type', function () {
 
     // Verify all embeddings were deleted
     expect(Embedding::count())->toBe(0);
+});
+
+test('cursor returns properly ordered lazy collection of models', function () {
+    // Create test models with different scores
+    $review1 = Review::factory()->create(['score' => 5]);
+    $review2 = Review::factory()->create(['score' => 3]);
+    $review3 = Review::factory()->create(['score' => 1]);
+
+    $results = Review::search('test')->cursor();
+
+    expect($results)
+        ->toBeInstanceOf(LazyCollection::class)
+        ->and($results->count())->toBe(3);
+});
+
+test('cursor handles empty search results', function () {
+    // Create models but don't create any embeddings
+    Review::factory()->count(3)->create();
+
+    $results = Review::search('')->cursor();
+
+    expect($results)
+        ->toBeInstanceOf(LazyCollection::class)
+        ->and($results->count())->toBe(0);
+});
+
+test('cursor respects where constraints', function () {
+    // Create test models with different scores
+    $review1 = Review::factory()->create(['score' => 5]);
+    $review2 = Review::factory()->create(['score' => 5]);
+    $review3 = Review::factory()->create(['score' => 3]);
+
+    $results = Review::search('test')
+        ->where('score', 5)
+        ->cursor();
+
+    expect($results->first()->embedding->neighbor_distance)->toBeFloat();
+
+    expect($results)
+        ->toBeInstanceOf(LazyCollection::class)
+        ->and($results->count())->toBe(2)
+        ->and($results->every(fn ($item) => $item->score === 5))->toBeTrue();
+});
+
+test('keys method returns collection of model ids in correct order', function () {
+    // Create test models with different scores
+    $review1 = Review::factory()->create(['score' => 5]);
+    $review2 = Review::factory()->create(['score' => 3]);
+    $review3 = Review::factory()->create(['score' => 1]);
+
+    $results = Review::search('test')->keys();
+
+    expect($results)
+        ->toBeInstanceOf(\Illuminate\Support\Collection::class)
+        ->and($results->count())->toBe(3)
+        ->and($results->toArray())->sequence(
+            fn ($id) => $id === $review2->getKey(),
+            fn ($id) => $id === $review3->getKey(),
+            fn ($id) => $id === $review1->getKey(),
+        );
+});
+
+test('keys method handles empty search results', function () {
+    // Create models but don't create any embeddings
+    Review::factory()->count(3)->create();
+
+    $results = Review::search('')->keys();
+
+    expect($results)
+        ->toBeInstanceOf(\Illuminate\Support\Collection::class)
+        ->and($results->count())->toBe(0);
 });

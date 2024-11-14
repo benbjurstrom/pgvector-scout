@@ -35,13 +35,5 @@ class TestCase extends Orchestra
         config()->set('database.connections.pgsql.username', 'postgres');
         config()->set('scout.driver', 'pgvector');
         config()->set('pgvector-scout.default', 'fake');
-
-        // Load the embeddings table migration
-        //        $migration = include __DIR__.'/../database/migrations/create_embeddings_table.php.stub';
-        //        $migration->up();
-        //
-        //        // Load the reviews table migration for testing
-        //        $migration = include __DIR__.'/Support/Migrations/2024_11_06_150840_create_reviews_table.php';
-        //        $migration->up();
     }
 }

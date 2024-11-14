@@ -5,6 +5,7 @@ namespace BenBjurstrom\PgvectorScout;
 use BenBjurstrom\PgvectorScout\Actions\CreateEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\FetchEmbedding;
 use BenBjurstrom\PgvectorScout\Actions\SearchEmbedding;
+use BenBjurstrom\PgvectorScout\Actions\ValidateSearchable;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -157,23 +158,7 @@ class PgvectorEngine extends Engine
             return LazyCollection::make($model->newCollection());
         }
 
-        $objectIds = $results->pluck('embeddable_id')->toArray();
-
-        $objectIdPositions = array_flip($objectIds);
-
-        if (! method_exists($model, 'queryScoutModelsByIds')) {
-            throw new \Exception('Model '.get_class($model).' does not implement the Searchable trait.');
-        }
-
-        return $model->queryScoutModelsByIds($builder, $objectIds)
-            ->cursor()
-            ->filter(static function ($model) use ($objectIds) {
-                return in_array($model->getScoutKey(), $objectIds, false);
-            })
-            ->sortBy(static function ($model) use ($objectIdPositions) {
-                return $objectIdPositions[$model->getScoutKey()];
-            })
-            ->values();
+        return new LazyCollection($this->map($builder, $results, $model));
     }
 
     /**
@@ -190,15 +175,28 @@ class PgvectorEngine extends Engine
             return $model->newCollection();
         }
 
-        $modelIds = $results->pluck('embeddable_id');
+        ValidateSearchable::handle($model);
 
-        // Eager load the actual models
-        $key = $model->getKeyName();
-        $models = $model->whereIn($key, $modelIds)->get();
-        $models = $models->keyBy(fn (Model $model) => $model->getKey());
+        $objectIds = $results->pluck('embeddable_id')->toArray();
 
-        // Map the embeddings to the models
-        return $results->map(function ($embedding) use ($models) {
+        $objectIdPositions = array_flip($objectIds);
+
+        $models = $model->getScoutModelsByIds($builder, $objectIds)
+            ->filter(static function ($model) use ($objectIds) {
+                return in_array($model->getScoutKey(), $objectIds, false);
+            })
+            ->sortBy(static function ($model) use ($objectIdPositions) {
+                return $objectIdPositions[$model->getScoutKey()];
+            })
+            ->values();
+
+
+        // Map the embeddings as children of the models
+        $models = $models->keyBy(function (Model $model): int|string {
+            return $model->getKey();
+        });
+
+        return $results->map(function ($embedding) use ($models): ?Model {
             if (isset($models[$embedding->embeddable_id])) {
                 $model = $models[$embedding->embeddable_id];
                 $model->setRelation('embedding', $embedding);
