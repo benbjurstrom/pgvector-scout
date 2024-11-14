@@ -122,11 +122,10 @@ $results = YourModel::search('your search query')->get();
 
 The text of your query will be converted into an embedding using the configured embedding handler.
 
-
-You can also search using an existing embedding to find related models:
+You can also search using an existing embedding vector to find related models:
 ```php
-// Search using an existing embedding
-$results = YourModel::search($someModel->embedding->embedding)->get();
+$vector = $someModel->embedding->vector;
+$results = YourModel::search($vector)->get();
 ```
 
 All search results will be ordered by similarity to the query and include the embedding relationship. The value of the nearest neighbor search can be accessed as follows:

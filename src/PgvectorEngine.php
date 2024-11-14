@@ -153,7 +153,27 @@ class PgvectorEngine extends Engine
      */
     public function lazyMap(Builder $builder, $results, $model): LazyCollection
     {
-        return LazyCollection::make($this->map($builder, $results, $model));
+        if ($results->isEmpty()) {
+            return LazyCollection::make($model->newCollection());
+        }
+
+        $objectIds = $results->pluck('embeddable_id')->toArray();
+
+        $objectIdPositions = array_flip($objectIds);
+
+        if (! method_exists($model, 'queryScoutModelsByIds')) {
+            throw new \Exception('Model '.get_class($model).' does not implement the Searchable trait.');
+        }
+
+        return $model->queryScoutModelsByIds($builder, $objectIds)
+            ->cursor()
+            ->filter(static function ($model) use ($objectIds) {
+                return in_array($model->getScoutKey(), $objectIds, false);
+            })
+            ->sortBy(static function ($model) use ($objectIdPositions) {
+                return $objectIdPositions[$model->getScoutKey()];
+            })
+            ->values();
     }
 
     /**
