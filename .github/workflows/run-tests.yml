@@ -50,6 +50,10 @@ jobs:
           database: laravel
           dev-files: true
 
+      - run: |
+          console.log($USER);
+          psql -h localhost -U $USER -d laravel --no-password -c "ALTER USER postgres PASSWORD 'postgres';"
+
       - name: Install pgvector
         run: |
           cd /tmp
@@ -57,7 +61,6 @@ jobs:
           cd pgvector
           make
           sudo make install
-          psql -h localhost -U postgres -d postgres --no-password -c "ALTER USER postgres PASSWORD 'postgres';"
 
       - name: Setup problem matchers
         run: |
