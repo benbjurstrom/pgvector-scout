@@ -1,93 +1,161 @@
-# :package_description
+# Pgvector driver for Laravel Scout
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-<!--delete-->
----
-This repo can be used to scaffold a Laravel package. Follow these steps to get started:
+Use pgvector with Laravel Scout for fast vector similarity search.
 
-1. Press the "Use this template" button at the top of this repo to create a new repo with the contents of this skeleton.
-2. Run "php ./configure.php" to run a script that will replace all placeholders throughout all the files.
-3. Have fun creating your package.
-4. If you need help creating a package, consider picking up our <a href="https://laravelpackage.training">Laravel Package Training</a> video course.
----
-<!--/delete-->
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/benbjurstrom/pgvector-scout.svg?style=flat-square)](https://packagist.org/packages/benbjurstrom/pgvector-scout)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3Arun-tests+branch%3Amain)
+[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
+[![Total Downloads](https://img.shields.io/packagist/dt/benbjurstrom/pgvector-scout.svg?style=flat-square)](https://packagist.org/packages/benbjurstrom/pgvector-scout)
 
-## Support us
+## 🚀 Quick Start
 
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/:package_name.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/:package_name)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
-
-## Installation
-
-You can install the package via composer:
-
+#### 1. Install the package using composer:
 ```bash
-composer require :vendor_slug/:package_slug
+composer require benbjurstrom/pgvector-scout
 ```
 
-You can publish and run the migrations with:
-
+#### 2. Publish and run the migrations:
 ```bash
-php artisan vendor:publish --tag=":package_slug-migrations"
+php artisan vendor:publish --tag="pgvector-scout-migrations"
 php artisan migrate
 ```
 
-You can publish the config file with:
+#### 3. Ensure the pgvector extension is available:
+```sql
+select * from pg_extension where extname='vector';
+```
 
+#### 4. Update the model you wish to make searchable:
+Add the `HasEmbeddings` and `Searchable` traits to your model and implement `toSearchableArray()` with the content you want converted into an embedding.
+
+```php
+use BenBjurstrom\PgvectorScout\Models\Concerns\HasEmbeddings;
+use Laravel\Scout\Searchable;
+
+class YourModel extends Model
+{
+    use HasEmbeddings, Searchable;
+
+    /**
+     * Get the indexable data array for the model.
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'title' => $this->title,
+            'content' => $this->content,
+        ];
+    }
+}
+```
+
+#### 5. Configure your environment:
+If you're using OpenAI to generate your embeddings be sure to add your API key to your `.env` file:
+```env
+OPENAI_API_KEY=your-api-key
+```
+
+#### 6. Publish the config:
 ```bash
-php artisan vendor:publish --tag=":package_slug-config"
+php artisan vendor:publish --tag="pgvector-scout-config"
 ```
 
 This is the contents of the published config file:
 
 ```php
 return [
+    /*
+    |--------------------------------------------------------------------------
+    | Default Embedding Handler
+    |--------------------------------------------------------------------------
+    |
+    | This option controls which embedding handler to use by default. You can
+    | change this to any of the handlers defined below or create your own.
+    |
+    */
+    'default' => env('EMBEDDING_HANDLER', 'openai'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Embedding Handler Configurations
+    |--------------------------------------------------------------------------
+    |
+    | Here you can define the configuration for different embedding handlers.
+    | Each handler can have its own specific configuration options.
+    |
+    */
+    'handlers' => [
+        'openai' => [
+            'class' => \BenBjurstrom\PgvectorScout\Handlers\OpenAiHandler::class,
+            'model' => 'text-embedding-3-small',
+            'dimensions' => 1536,
+            'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
+            'api_key' => env('OPENAI_API_KEY'),
+            'table' => 'embeddings',
+        ],
+        'fake' => [
+            'class' => \BenBjurstrom\PgvectorScout\Handlers\FakeHandler::class,
+            'model' => 'fake',
+            'dimensions' => 3,
+            'url' => 'https://example.com',
+            'api_key' => '123',
+            'table' => 'embeddings',
+        ],
+    ],
 ];
 ```
 
-Optionally, you can publish the views using
+## 🔍 Usage
+
+### Create embeddings for your models:
+Scout will automatically generate embeddings for your models when they are saved. If you want to manually generate embeddings for existing models you can use the artisan command below. See the [Scout documentation](https://laravel.com/docs/8.x/scout) for more information.
 
 ```bash
-php artisan vendor:publish --tag=":package_slug-views"
+artisan scout:import "App\Models\YourModel"
 ```
 
-## Usage
-
+### Search your models using vector similarity:
 ```php
-$variable = new VendorName\Skeleton();
-echo $variable->echoPhrase('Hello, VendorName!');
+// Search using a text query
+$results = YourModel::search('your search query')->get();
 ```
 
-## Testing
+The text of your query will be converted into an embedding using the configured embedding handler.
 
+You can also search using an existing embedding vector to find related models:
+```php
+$vector = $someModel->embedding->vector;
+$results = YourModel::search($vector)->get();
+```
+
+All search results will be ordered by similarity to the query and include the embedding relationship. The value of the nearest neighbor search can be accessed as follows:
+```php
+$results = YourModel::search('your search query')->get();
+$results->first()->embedding->neighbor_distance; // 1.0121312 (example value)
+```
+
+## Installing pgvector when using DBngin
+First, add PostgreSQL to your path:
 ```bash
-composer test
+export PATH=/Users/Shared/DBngin/postgresql/14.3/bin:$PATH
 ```
 
-## Changelog
+Then install pgvector:
+```bash
+git clone https://github.com/pgvector/pgvector.git
+cd pgvector
+make && make install
+```
 
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+## 🤝 Contributing
 
-## Contributing
+Contributions are welcome! Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+## 👏 Credits
 
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
-
-## Credits
-
-- [:author_name](https://github.com/:author_username)
+- [Ben Bjurstrom](https://github.com/benbjurstrom)
 - [All Contributors](../../contributors)
 
-## License
+## 📝 License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.

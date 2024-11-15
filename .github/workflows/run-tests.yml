@@ -13,19 +13,22 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_USERNAME: $USER
+      DB_DATABASE: laravel
+      DB_PASSWORD: postgres
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        php: [8.3, 8.2]
-        laravel: [11.*, 10.*]
-        stability: [prefer-lowest, prefer-stable]
+        os: [ubuntu-latest]
+        php: [8.3]
+        laravel: [11.*]
+        stability: [prefer-stable]
         include:
           - laravel: 11.*
             testbench: 9.*
-            carbon: ^2.63
-          - laravel: 10.*
-            testbench: 8.*
             carbon: ^2.63
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
@@ -40,6 +43,24 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
           coverage: none
+
+      - name: Install Postgres
+        uses: ankane/setup-postgres@v1
+        with:
+          database: laravel
+          dev-files: true
+
+      - run: |
+          echo $USER
+          psql -h localhost -U $USER -d laravel --no-password -c "ALTER USER postgres PASSWORD 'postgres';"
+
+      - name: Install pgvector
+        run: |
+          cd /tmp
+          git clone --branch v0.8.0 https://github.com/pgvector/pgvector.git
+          cd pgvector
+          make
+          sudo make install
 
       - name: Setup problem matchers
         run: |

@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace BenBjurstrom\PgvectorScout\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class PgvectorScoutCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'pgvector-scout';
 
     public $description = 'My command';
 
