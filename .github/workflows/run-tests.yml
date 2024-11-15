@@ -57,6 +57,7 @@ jobs:
           cd pgvector
           make
           sudo make install
+          psql -h localhost -U postgres -d postgres -c 'ALTER USER postgres PASSWORD 'postgres';'
 
       - name: Setup problem matchers
         run: |
