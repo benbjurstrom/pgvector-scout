@@ -17,7 +17,7 @@ jobs:
       DB_CONNECTION: pgsql
       DB_HOST: localhost
       DB_USERNAME: runner
-      DB_DATABASE: postgres
+      DB_DATABASE: laravel
     strategy:
       fail-fast: true
       matrix:
@@ -46,7 +46,7 @@ jobs:
       - name: Install Postgres
         uses: ankane/setup-postgres@v1
         with:
-          database: postgres
+          database: laravel
           dev-files: true
 
       - name: Install pgvector
