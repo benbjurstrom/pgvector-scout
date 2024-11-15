@@ -13,6 +13,8 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    env:
+      DB_HOST: postgres
     strategy:
       fail-fast: true
       matrix:
@@ -48,8 +50,6 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
           coverage: none
-        env:
-          DB_HOST: postgres
 
       - name: Setup problem matchers
         run: |
