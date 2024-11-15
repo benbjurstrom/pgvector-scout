@@ -14,7 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     env:
-      DB_HOST: postgres
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
     strategy:
       fail-fast: true
       matrix:
