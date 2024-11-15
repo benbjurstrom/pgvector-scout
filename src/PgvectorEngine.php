@@ -196,7 +196,6 @@ class PgvectorEngine extends Engine
             })
             ->values();
 
-
         // Map the embeddings as children of the models
         $models = $models->keyBy(function (Model $model): int|string {
             return $model->getKey();

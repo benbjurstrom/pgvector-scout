@@ -42,7 +42,7 @@ class SearchEmbedding
 
         $query->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
 
-        if($builder->limit) {
+        if ($builder->limit) {
             $query->limit($builder->limit);
         }
 

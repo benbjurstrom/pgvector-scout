@@ -110,7 +110,7 @@ class CreateEmbedding
         Log::info('Updating embedding', [
             'id' => $model->getKey(),
             'model' => get_class($model),
-            'embedding_model' => $config->model
+            'embedding_model' => $config->model,
         ]);
 
         return Embedding::updateOrCreate(

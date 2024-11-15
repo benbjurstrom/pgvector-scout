@@ -30,7 +30,6 @@ test('update method calls CreateEmbedding for each model', function () {
     expect(Embedding::count())->toBe(2);
 });
 
-
 test('search method can filter by model properties', function () {
     // Create test models with different scores
     $review1 = Review::factory()->create(['score' => 5]);
@@ -175,7 +174,6 @@ test('soft deleting a model does not delete its embedding if scout.soft_delete i
     expect(Embedding::count())->toBe(1);
     expect(Embedding::first()->id)->toBe($review->embedding->id);
 });
-
 
 test('force deleting a model deletes its embedding even if scout.soft_delete is true', function () {
 
