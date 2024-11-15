@@ -25,7 +25,7 @@ return [
         'openai' => [
             'class' => \BenBjurstrom\PgvectorScout\Handlers\OpenAiHandler::class,
             'model' => 'text-embedding-3-small',
-            'dimensions' => 1536,
+            'dimensions' => 256, // See Reducing embedding dimensions https://platform.openai.com/docs/guides/embeddings#use-cases
             'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
             'api_key' => env('OPENAI_API_KEY'),
             'table' => 'embeddings',

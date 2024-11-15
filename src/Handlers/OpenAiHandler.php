@@ -29,6 +29,7 @@ class OpenAiHandler implements HandlerContract
             ])->post($config->url.'/embeddings', [
                 'input' => $input,
                 'model' => $config->model,
+                'dimensions' => $config->dimensions,
             ]);
 
             static::validateResponse($response);

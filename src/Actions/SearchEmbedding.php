@@ -5,10 +5,11 @@ namespace BenBjurstrom\PgvectorScout\Actions;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\DB;
 use Laravel\Scout\Builder;
 use Pgvector\Laravel\Distance;
 use Pgvector\Laravel\Vector;
+
+// use Illuminate\Support\Facades\DB;
 
 class SearchEmbedding
 {
@@ -22,13 +23,13 @@ class SearchEmbedding
         Builder $builder,
         Vector $searchVector
     ) {
-        DB::connection()->enableQueryLog();
 
         $model = $builder->model;
         $query = Embedding::query()
             ->where('embeddable_type', $model->getMorphClass());
 
         $query->whereHas('embeddable', function ($query) use ($builder, $model) {
+
             if ($builder->wheres) {
                 foreach ($builder->wheres as $key => $value) {
                     $query->where($key, $value);
@@ -45,6 +46,10 @@ class SearchEmbedding
         if ($builder->limit) {
             $query->limit($builder->limit);
         }
+
+        //        DB::connection()->enableQueryLog();
+        //            $query->get();
+        //        dd(DB::getQueryLog());
 
         return $query;
     }

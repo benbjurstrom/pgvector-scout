@@ -76,6 +76,7 @@ class PgvectorEngine extends Engine
 
         $searchVector = FetchEmbedding::handle($builder->query);
 
+        $builder->take($perPage);
         $query = SearchEmbedding::handle(
             $builder,
             $searchVector

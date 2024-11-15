@@ -34,6 +34,7 @@ return new class extends Migration
 
         // Create HNSW index on the vector column
         DB::statement("CREATE INDEX {$table}_vector_idx ON {$table} USING hnsw (embedding vector_cosine_ops)");
+        // https://platform.openai.com/docs/guides/embeddings#which-distance-function-should-i-use
     }
 
     /**
