@@ -16,8 +16,7 @@ jobs:
     env:
       DB_CONNECTION: pgsql
       DB_HOST: localhost
-      DB_PASSWORD: postgres
-      DB_USERNAME: postgres
+      DB_USERNAME: runner
       DB_DATABASE: postgres
     strategy:
       fail-fast: true
@@ -33,17 +32,6 @@ jobs:
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
 
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432/tcp
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -54,6 +42,20 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
           coverage: none
+
+      - name: Install Postgres
+        uses: ankane/setup-postgres@v1
+        with:
+          database: postgres
+          dev-files: true
+
+      - name: Install pgvector
+        run: |
+          cd /tmp
+          git clone --branch v0.8.0 https://github.com/pgvector/pgvector.git
+          cd pgvector
+          make
+          sudo make install
 
       - name: Setup problem matchers
         run: |
@@ -70,5 +72,3 @@ jobs:
 
       - name: Execute tests
         run: vendor/bin/pest --ci
-        env:
-          DB_PORT: ${{ job.services.postgres.ports[5432] }}
