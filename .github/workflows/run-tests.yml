@@ -16,7 +16,8 @@ jobs:
     env:
       DB_CONNECTION: pgsql
       DB_HOST: localhost
-      DB_USERNAME: runner
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
       DB_DATABASE: laravel
     strategy:
       fail-fast: true
