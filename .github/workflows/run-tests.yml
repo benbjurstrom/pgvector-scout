@@ -18,7 +18,7 @@ jobs:
       DB_HOST: localhost
       DB_USERNAME: $USER
       DB_DATABASE: laravel
-      DB_PASSWORD: null
+      DB_PASSWORD: postgres
     strategy:
       fail-fast: true
       matrix:
