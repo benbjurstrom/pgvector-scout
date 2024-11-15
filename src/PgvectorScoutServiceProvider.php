@@ -27,7 +27,7 @@ class PgvectorScoutServiceProvider extends PackageServiceProvider
                     ->publishConfigFile()
                     ->publishMigrations()
                     ->askToRunMigrations()
-                    ->askToStarRepoOnGitHub();
+                    ->askToStarRepoOnGitHub('benbjurstrom/pgvector-scout');
             });
     }
 

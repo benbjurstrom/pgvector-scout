@@ -19,9 +19,10 @@ class OpenAiHandler implements HandlerContract
      */
     public static function handle(string $input, HandlerConfig $config): Vector
     {
-        $cacheKey = 'openai_embedding:'.sha1($input.$config->model);
+        $cacheKey = $config->name.':'.$config->model.':'.sha1($input);
 
         $embedding = Cache::rememberForever($cacheKey, function () use ($input, $config) {
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$config->apiKey,
                 'Content-Type' => 'application/json',

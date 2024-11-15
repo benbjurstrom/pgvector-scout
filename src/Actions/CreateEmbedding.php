@@ -5,6 +5,7 @@ namespace BenBjurstrom\PgvectorScout\Actions;
 use BenBjurstrom\PgvectorScout\HandlerConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Pgvector\Laravel\Vector;
 
@@ -39,6 +40,7 @@ class CreateEmbedding
 
         // Check if we already have a vector for this model with the same hash
         $contentHash = HashContent::handle($content);
+
         if ($embedding = static::existingEmbedding($model, $contentHash, $config)) {
             return $embedding;
         }
@@ -105,6 +107,12 @@ class CreateEmbedding
         Vector $vector,
         HandlerConfig $config
     ): Embedding {
+        Log::info('Updating embedding', [
+            'id' => $model->getKey(),
+            'model' => get_class($model),
+            'embedding_model' => $config->model
+        ]);
+
         return Embedding::updateOrCreate(
             [
                 'embeddable_type' => get_class($model),
