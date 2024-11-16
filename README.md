@@ -1,11 +1,12 @@
 # Pgvector driver for Laravel Scout
 
-Use pgvector with Laravel Scout for fast vector similarity search.
+Use the pgvector extension with Laravel Scout for vector similarity search.
+
+To see a full example showing how to use this package check out [benbjurstrom/pgvector-scout-demo](https://github.com/benbjurstrom/pgvector-scout-demo).
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/benbjurstrom/pgvector-scout.svg?style=flat-square)](https://packagist.org/packages/benbjurstrom/pgvector-scout)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/benbjurstrom/pgvector-scout.svg?style=flat-square)](https://packagist.org/packages/benbjurstrom/pgvector-scout)
 
 ## 🚀 Quick Start
 
@@ -108,39 +109,59 @@ return [
 ## 🔍 Usage
 
 ### Create embeddings for your models:
-Scout will automatically generate embeddings for your models when they are saved. If you want to manually generate embeddings for existing models you can use the artisan command below. See the [Scout documentation](https://laravel.com/docs/8.x/scout) for more information.
+Laravel Scout uses eloquent model observers to automatically keep your search index in sync anytime your Searchable models change. 
+
+This package uses this functionality automatically generate embeddings for your models when they are saved or updated; or remove them when your models are deleted.
+
+If you want to manually generate embeddings for existing models you can use the artisan command below. See the [Scout documentation](https://laravel.com/docs/8.x/scout) for more information.
 
 ```bash
 artisan scout:import "App\Models\YourModel"
 ```
 
-### Search your models using vector similarity:
+### Search using vector similarity:
+You can use the typical Scout syntax to search your models. For example:
+
 ```php
-// Search using a text query
 $results = YourModel::search('your search query')->get();
 ```
 
-The text of your query will be converted into an embedding using the configured embedding handler.
+Note that the text of your query will be converted into a vector embedding using the configured embedding handler (such as OpenAI). It's important that the same model is used for both indexing and searching.
 
-You can also search using an existing embedding vector to find related models:
+### Search using existing vectors:
+You can also pass an existing embedding vector as a search parameter. This can be useful to find related models. For example:
 ```php
 $vector = $someModel->embedding->vector;
 $results = YourModel::search($vector)->get();
 ```
 
-All search results will be ordered by similarity to the query and include the embedding relationship. The value of the nearest neighbor search can be accessed as follows:
+### Evaluate search results:
+All search queries will be ordered by similarity to the given input and include the embedding relationship. The value of the nearest neighbor search can be accessed as follows:
 ```php
 $results = YourModel::search('your search query')->get();
 $results->first()->embedding->neighbor_distance; // 0.26834 (example value)
 ```
 
+The larger the distance the less similar the result is to the input.
+
+## 🛠Using custom handlers
+By default this package uses OpenAI to generate embeddings. To do this it uses the [OpenAiHandler](https://github.com/benbjurstrom/pgvector-scout/blob/main/src/Handlers/OpenAiHandler.php) class paired with the openai config found in the packages [config file](https://github.com/benbjurstrom/pgvector-scout/blob/main/config/pgvector-scout.php).
+
+You can generate embeddings from other providers by adding a custom Handler. A handler is a simple class defined in the [HandlerContract](https://github.com/benbjurstrom/pgvector-scout/blob/main/src/HandlerContract.php) that takes a string and returns a `Pgvector\Laravel\Vector` object.
+
+Whatever api calls or logic is needed to turn a string into a vector should be defined in the `handle` method of your custom handler.
+
+If you need to pass api keys, embedding dimensions, or any other configuration to your handler you can define them in the `config/pgvector-scout.php` file.
+
 ## Installing pgvector when using DBngin
-First, add PostgreSQL to your path:
+If you're using [DBngin](https://dbngin.com/) for local development you can install the pgvector extention by doing the following:
+
+1. Add PostgreSQL to your path:
 ```bash
 export PATH=/Users/Shared/DBngin/postgresql/14.3/bin:$PATH
 ```
 
-Then install pgvector:
+2. Then install pgvector:
 ```bash
 git clone https://github.com/pgvector/pgvector.git
 cd pgvector
