@@ -121,7 +121,7 @@ class CreateEmbedding
             [
                 'embedding_model' => $config->model,
                 'content_hash' => $contentHash,
-                'embedding' => $vector,
+                'vector' => $vector,
             ]
         );
     }

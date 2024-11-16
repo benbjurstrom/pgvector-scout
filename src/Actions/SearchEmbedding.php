@@ -41,7 +41,7 @@ class SearchEmbedding
             }
         });
 
-        $query->nearestNeighbors('embedding', $searchVector, Distance::Cosine);
+        $query->nearestNeighbors('vector', $searchVector, Distance::Cosine);
 
         if ($builder->limit) {
             $query->limit($builder->limit);
