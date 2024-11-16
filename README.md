@@ -1,12 +1,16 @@
+<p align="center"><img src="https://github.com/user-attachments/assets/9c55eb67-f44f-442d-86b9-e0969213862c" width="600" alt="Logo"></a></p>
+
+<p align="center">
+<a href="https://packagist.org/packages/benbjurstrom/pgvector-scout"><img src="https://img.shields.io/packagist/v/benbjurstrom/pgvector-scout.svg?style=flat-square" alt="Latest Version on Packagist"></a>
+<a href="https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3Arun-tests+branch%3Amain"><img src="https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/run-tests.yml?branch=main&label=tests&style=flat-square" alt="GitHub Tests Action Status"></a>
+<a href="https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain"><img src="https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square" alt="GitHub Code Style Action Status"></a>
+</p>
+
 # Pgvector driver for Laravel Scout
 
 Use the pgvector extension with Laravel Scout for vector similarity search.
 
 To see a full example showing how to use this package check out [benbjurstrom/pgvector-scout-demo](https://github.com/benbjurstrom/pgvector-scout-demo).
-
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/benbjurstrom/pgvector-scout.svg?style=flat-square)](https://packagist.org/packages/benbjurstrom/pgvector-scout)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/benbjurstrom/pgvector-scout/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/benbjurstrom/pgvector-scout/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 
 ## 🚀 Quick Start
 
