@@ -24,7 +24,7 @@ return new class extends Migration
             $table->morphs('embeddable');
             $table->string('embedding_model');
             $table->uuid('content_hash');
-            $table->vector('embedding', $config->dimensions);
+            $table->vector('vector', $config->dimensions);
             $table->timestamps();
 
             // Add indexes
@@ -33,7 +33,7 @@ return new class extends Migration
         });
 
         // Create HNSW index on the vector column
-        DB::statement("CREATE INDEX {$table}_vector_idx ON {$table} USING hnsw (embedding vector_cosine_ops)");
+        DB::statement("CREATE INDEX {$table}_vector_idx ON {$table} USING hnsw (vector vector_cosine_ops)");
         // https://platform.openai.com/docs/guides/embeddings#which-distance-function-should-i-use
     }
 

@@ -88,7 +88,7 @@ return [
         'openai' => [
             'class' => \BenBjurstrom\PgvectorScout\Handlers\OpenAiHandler::class,
             'model' => 'text-embedding-3-small',
-            'dimensions' => 1536,
+            'dimensions' => 256, // See Reducing embedding dimensions https://platform.openai.com/docs/guides/embeddings#use-cases
             'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
             'api_key' => env('OPENAI_API_KEY'),
             'table' => 'embeddings',
@@ -131,7 +131,7 @@ $results = YourModel::search($vector)->get();
 All search results will be ordered by similarity to the query and include the embedding relationship. The value of the nearest neighbor search can be accessed as follows:
 ```php
 $results = YourModel::search('your search query')->get();
-$results->first()->embedding->neighbor_distance; // 1.0121312 (example value)
+$results->first()->embedding->neighbor_distance; // 0.26834 (example value)
 ```
 
 ## Installing pgvector when using DBngin
@@ -146,10 +146,6 @@ git clone https://github.com/pgvector/pgvector.git
 cd pgvector
 make && make install
 ```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## 👏 Credits
 
