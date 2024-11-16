@@ -15,7 +15,7 @@ use Pgvector\Laravel\Vector;
  * @property string $embeddable_type
  * @property string $embedding_model
  * @property string $content_hash
- * @property Vector $embedding
+ * @property Vector $vector
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * */
@@ -37,7 +37,7 @@ class Embedding extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'embedding' => Vector::class,
+        'vector' => Vector::class,
     ];
 
     /**
@@ -58,13 +58,5 @@ class Embedding extends Model
     public function embeddable(): MorphTo
     {
         return $this->morphTo();
-    }
-
-    /**
-     * Calculate the content hash for a given string.
-     */
-    public static function calculateHash(string $content): string
-    {
-        return md5($content);
     }
 }
