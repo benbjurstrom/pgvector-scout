@@ -41,16 +41,6 @@ class Embedding extends Model
     ];
 
     /**
-     * Get the configured table name for the current default handler
-     */
-    protected function getTableName(): string
-    {
-        $default = config('pgvector-scout.default');
-
-        return config("pgvector-scout.handlers.{$default}.table", 'embeddings');
-    }
-
-    /**
      * Get the parent embeddable model.
      *
      * @return MorphTo<Model, $this>
@@ -58,5 +48,30 @@ class Embedding extends Model
     public function embeddable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function forModel(Model $model): Embedding
+    {
+        $index = $model->searchableAs();
+
+        $table = config("pgvector-scout.handlers.{$index}.table");
+        $this->setTable($table);
+
+        return $this;
+    }
+
+    /**
+     * Create a new instance of the given model.
+     *
+     * @param  array<int, mixed>  $attributes
+     * @param  bool  $exists
+     * @return static
+     */
+    public function newInstance($attributes = [], $exists = false): Embedding
+    {
+        $model = parent::newInstance($attributes, $exists);
+        $model->setTable($this->table);
+
+        return $model;
     }
 }

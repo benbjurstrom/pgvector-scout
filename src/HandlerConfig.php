@@ -14,6 +14,7 @@ class HandlerConfig
         public readonly string $table,
         public readonly string $url,
         public readonly string $apiKey,
+        public readonly ?string $task,
     ) {
         $this->validate();
     }
@@ -41,6 +42,7 @@ class HandlerConfig
             table: $config['table'] ?? throw new RuntimeException("No table configured for handler '{$default}'."),
             url: $config['url'] ?? throw new RuntimeException("No URL configured for handler '{$default}'."),
             apiKey: $config['api_key'] ?? throw new RuntimeException("No API key configured for handler '{$default}'."),
+            task: $config['task'] ?? null,
         );
     }
 

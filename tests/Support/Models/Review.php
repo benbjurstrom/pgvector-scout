@@ -30,4 +30,12 @@ class Review extends Model
             'text' => $this->text,
         ];
     }
+
+    /**
+     * Get the name of the index associated with the model.
+     */
+    public function searchableAs(): string
+    {
+        return 'fake';
+    }
 }

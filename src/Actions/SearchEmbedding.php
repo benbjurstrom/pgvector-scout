@@ -23,9 +23,9 @@ class SearchEmbedding
         Builder $builder,
         Vector $searchVector
     ) {
-
         $model = $builder->model;
-        $query = Embedding::query()
+        $query = (new Embedding)
+            ->forModel($model)
             ->where('embeddable_type', $model->getMorphClass());
 
         $query->whereHas('embeddable', function ($query) use ($builder, $model) {

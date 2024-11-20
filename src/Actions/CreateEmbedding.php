@@ -90,7 +90,8 @@ class CreateEmbedding
         string $contentHash,
         HandlerConfig $config
     ): ?Embedding {
-        return Embedding::query()
+        return (new Embedding)
+            ->forModel($model)
             ->where('embeddable_type', get_class($model))
             ->where('embeddable_id', $model->getKey())
             ->where('content_hash', $contentHash)
@@ -113,7 +114,9 @@ class CreateEmbedding
             'embedding_model' => $config->model,
         ]);
 
-        return Embedding::updateOrCreate(
+        return (new Embedding)
+            ->forModel($model)
+            ->updateOrCreate(
             [
                 'embeddable_type' => get_class($model),
                 'embeddable_id' => $model->getKey(),

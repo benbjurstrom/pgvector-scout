@@ -30,13 +30,22 @@ return [
             'api_key' => env('OPENAI_API_KEY'),
             'table' => 'embeddings',
         ],
+        'gemini' => [
+            'class' => \BenBjurstrom\PgvectorScout\Handlers\GeminiHandler::class,
+            'model' => 'text-embedding-004',
+            'dimensions' => 256,
+            'url' => env('GEMINI_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+            'api_key' => env('GEMINI_API_KEY'),
+            'table' => 'embeddings',
+            'task' => 'SEMANTIC_SIMILARITY', // https://ai.google.dev/api/embeddings#tasktype
+        ],
         'fake' => [
             'class' => \BenBjurstrom\PgvectorScout\Handlers\FakeHandler::class,
             'model' => 'fake',
             'dimensions' => 3,
             'url' => 'https://example.com',
             'api_key' => '123',
-            'table' => 'embeddings',
+            'table' => 'fake_embeddings',
         ],
     ],
 ];
