@@ -14,25 +14,26 @@ class GeminiHandler implements HandlerContract
 {
     public static function handle(string $input, HandlerConfig $config): Vector
     {
-        $cacheKey = $config->name.':'.$config->model.':'.sha1($input) . 4;
+        $cacheKey = $config->name.':'.$config->model.':'.sha1($input). 4;
 
         $embedding = Cache::rememberForever($cacheKey, function () use ($input, $config) {
-            $url = $config->url.'/models/'. $config->model. ':embedContent?key='.$config->apiKey;
+            $url = $config->url.'/models/'.$config->model.':embedContent?key='.$config->apiKey;
 
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
             ])->post($url, [
-                'model' => 'models/' . $config->model,
+                'model' => 'models/'.$config->model,
                 'output_dimensionality' => $config->dimensions,
                 'taskType' => $config->task,
                 'content' => [
                     'parts' => [
-                        ['text' => $input]
-                    ]
-                ]
+                        ['text' => $input],
+                    ],
+                ],
             ]);
 
             static::validateResponse($response);
+
             return static::extractEmbedding($response);
         });
 
@@ -48,6 +49,13 @@ class GeminiHandler implements HandlerContract
         }
     }
 
+    /**
+     * Extract the embedding from the response
+     *
+     * @return array<int, float>
+     *
+     * @throws RuntimeException
+     */
     protected static function extractEmbedding(Response $response): array
     {
         $embedding = $response->json('embedding.values');

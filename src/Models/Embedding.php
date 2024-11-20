@@ -49,6 +49,10 @@ class Embedding extends Model
 
     public function forModel(Model $model): Embedding
     {
+        if (! method_exists($model, 'searchableAs')) {
+            throw new \RuntimeException('Model '.get_class($model).' does not implement the Searchable trait.');
+        }
+
         $index = $model->searchableAs();
 
         $table = config("pgvector-scout.handlers.{$index}.table");

@@ -36,6 +36,7 @@ function data(Model $model): array
 function embedding(?string $class = null): Embedding
 {
     $class = $class ?? Review::class;
+
     return (new Embedding)->forModel(new $class);
 }
 

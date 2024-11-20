@@ -117,15 +117,15 @@ class CreateEmbedding
         return (new Embedding)
             ->forModel($model)
             ->updateOrCreate(
-            [
-                'embeddable_type' => get_class($model),
-                'embeddable_id' => $model->getKey(),
-            ],
-            [
-                'embedding_model' => $config->model,
-                'content_hash' => $contentHash,
-                'vector' => $vector,
-            ]
-        );
+                [
+                    'embeddable_type' => get_class($model),
+                    'embeddable_id' => $model->getKey(),
+                ],
+                [
+                    'embedding_model' => $config->model,
+                    'content_hash' => $contentHash,
+                    'vector' => $vector,
+                ]
+            );
     }
 }
