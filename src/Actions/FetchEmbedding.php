@@ -2,7 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Actions;
 
-use BenBjurstrom\PgvectorScout\HandlerConfig;
+use BenBjurstrom\PgvectorScout\IndexConfig;
 use Pgvector\Laravel\Vector;
 use RuntimeException;
 
@@ -15,15 +15,15 @@ class FetchEmbedding
      *
      * @throws RuntimeException|\Exception If the handler class is not properly configured
      */
-    public static function handle(string|Vector $query): Vector
+    public static function handle(string|Vector $query, string $index): Vector
     {
         // If the query is already a vector, return it
         if ($query instanceof Vector) {
             return $query;
         }
 
-        $config = HandlerConfig::fromConfig();
+        $config = IndexConfig::from($index);
 
-        return $config->class::handle($query, $config);
+        return $config->handler::handle($query, $config);
     }
 }

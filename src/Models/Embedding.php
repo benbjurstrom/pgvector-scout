@@ -55,7 +55,8 @@ class Embedding extends Model
 
         $index = $model->searchableAs();
 
-        $table = config("pgvector-scout.handlers.{$index}.table");
+        $table = config("pgvector-scout.indexes.{$index}.table");
+
         $this->setTable($table);
 
         return $this;

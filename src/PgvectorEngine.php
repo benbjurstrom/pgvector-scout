@@ -34,7 +34,7 @@ class PgvectorEngine extends Engine
             'model' => get_class($models->first()),
         ]);
 
-        $config = HandlerConfig::fromConfig();
+        $config = IndexConfig::fromModel($models->first());
         $models->each(function (Model $model) use ($config) {
             CreateEmbedding::handle($model, $config);
         });
@@ -48,11 +48,15 @@ class PgvectorEngine extends Engine
      */
     public function search(Builder $builder): Collection
     {
+        $model = $builder->model;
         if (blank($builder->query)) {
-            return (new Embedding)->newCollection();
+            return (new Embedding)->forModel($model)->newCollection();
         }
 
-        $searchVector = FetchEmbedding::handle($builder->query);
+        $searchVector = FetchEmbedding::handle(
+            $builder->query,
+            $model->searchableAs()
+        );
 
         $query = SearchEmbedding::handle(
             $builder,
@@ -70,11 +74,15 @@ class PgvectorEngine extends Engine
      */
     public function paginate(Builder $builder, $perPage, $page): LengthAwarePaginator
     {
+        $model = $builder->model;
         if (blank($builder->query)) {
-            return (new Embedding)->forModel($builder->model)->paginate();
+            return (new Embedding)->forModel($model)->paginate();
         }
 
-        $searchVector = FetchEmbedding::handle($builder->query);
+        $searchVector = FetchEmbedding::handle(
+            $builder->query,
+            $model->searchableAs(),
+        );
 
         $builder->take($perPage);
         $query = SearchEmbedding::handle(

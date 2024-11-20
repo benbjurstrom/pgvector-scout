@@ -1,6 +1,6 @@
 <?php
 
-use BenBjurstrom\PgvectorScout\HandlerConfig;
+use BenBjurstrom\PgvectorScout\IndexConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use BenBjurstrom\PgvectorScout\PgvectorEngine;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\Review;
@@ -110,7 +110,7 @@ test('search method can limit results', function () {
 });
 
 test('can search using existing vector', function () {
-    $config = HandlerConfig::fromConfig();
+    $config = IndexConfig::fromModel(new Review);
     $vector = new Vector(array_fill(0, $config->dimensions, 0.1));
 
     Review::factory()->create(['score' => 5]);

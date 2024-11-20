@@ -2,8 +2,8 @@
 
 namespace BenBjurstrom\PgvectorScout\Handlers;
 
-use BenBjurstrom\PgvectorScout\HandlerConfig;
 use BenBjurstrom\PgvectorScout\HandlerContract;
+use BenBjurstrom\PgvectorScout\IndexConfig;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -12,7 +12,7 @@ use RuntimeException;
 
 class GeminiHandler implements HandlerContract
 {
-    public static function handle(string $input, HandlerConfig $config): Vector
+    public static function handle(string $input, IndexConfig $config): Vector
     {
         $cacheKey = $config->name.':'.$config->model.':'.sha1($input). 4;
 
