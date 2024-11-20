@@ -2,8 +2,6 @@
 
 namespace BenBjurstrom\PgvectorScout\Models;
 
-use BenBjurstrom\PgvectorScout\Database\Factories\EmbeddingFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
@@ -21,8 +19,7 @@ use Pgvector\Laravel\Vector;
  * */
 class Embedding extends Model
 {
-    /** @use HasFactory<EmbeddingFactory> */
-    use HasFactory, HasNeighbors;
+    use HasNeighbors;
 
     /**
      * The attributes that aren't mass assignable.

@@ -71,7 +71,7 @@ class PgvectorEngine extends Engine
     public function paginate(Builder $builder, $perPage, $page): LengthAwarePaginator
     {
         if (blank($builder->query)) {
-            return (new Embedding)->paginate();
+            return (new Embedding)->forModel($builder->model)->paginate();
         }
 
         $searchVector = FetchEmbedding::handle($builder->query);
@@ -116,7 +116,7 @@ class PgvectorEngine extends Engine
      */
     public function flush($model)
     {
-        Embedding::query()
+        (new Embedding)->forModel($model)
             ->where('embeddable_type', get_class($model))
             ->delete();
     }
@@ -134,8 +134,9 @@ class PgvectorEngine extends Engine
         }
 
         // Use a single query instead of multiple queries
-        Embedding::query()
-            ->where('embeddable_type', get_class($models->first()))
+        $model = $models->first();
+        (new Embedding)->forModel($model)
+            ->where('embeddable_type', get_class($model))
             ->whereIn('embeddable_id', $models->pluck('id'))
             ->delete();
     }

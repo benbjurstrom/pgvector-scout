@@ -6,9 +6,11 @@ use BenBjurstrom\PgvectorScout\PgvectorEngine;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\Review;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\ReviewSoftDelete;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\LazyCollection;
 use Pgvector\Laravel\Vector;
+use Ramsey\Uuid\Uuid;
 
 beforeEach(function () {
     // Load the reviews table migration for testing
@@ -20,6 +22,23 @@ beforeEach(function () {
     $migration->up();
 });
 
+function data(Model $model): array
+{
+    return [
+        'embeddable_type' => get_class($model),
+        'embeddable_id' => $model->getKey(),
+        'content_hash' => Uuid::uuid1(),
+        'vector' => new Vector(array_fill(0, 3, 0.1)),
+        'embedding_model' => 'test-model',
+    ];
+}
+
+function embedding(?string $class = null): Embedding
+{
+    $class = $class ?? Review::class;
+    return (new Embedding)->forModel(new $class);
+}
+
 test('update method calls CreateEmbedding for each model', function () {
     // Create test models
     Review::factory()
@@ -27,7 +46,7 @@ test('update method calls CreateEmbedding for each model', function () {
         ->create();
 
     // ensure embeddings are created for all models
-    expect(Embedding::count())->toBe(2);
+    expect(embedding()->count())->toBe(2);
 });
 
 test('search method can filter by model properties', function () {
@@ -108,23 +127,19 @@ test('delete method removes embeddings for given models', function () {
     $review2 = Review::factory()->createQuietly();
 
     // Create embeddings for the models using factory
-    Embedding::factory()
-        ->forModel($review1)
-        ->create();
+    embedding()->create(data($review1));
 
-    Embedding::factory()
-        ->forModel($review2)
-        ->create();
+    embedding()->create(data($review2));
 
     // Verify embeddings exist
-    expect(Embedding::count())->toBe(2);
+    expect(embedding()->count())->toBe(2);
 
     $review1->delete();
 
     // Verify only one embedding was deleted
-    expect(Embedding::count())->toBe(1);
-    expect(Embedding::where('embeddable_id', $review1->id)->exists())->toBeFalse();
-    expect(Embedding::where('embeddable_id', $review2->id)->exists())->toBeTrue();
+    expect(embedding()->count())->toBe(1);
+    expect(embedding()->where('embeddable_id', $review1->id)->exists())->toBeFalse();
+    expect(embedding()->where('embeddable_id', $review2->id)->exists())->toBeTrue();
 });
 
 test('delete handles empty collection gracefully', function () {
@@ -141,19 +156,17 @@ test('delete removes multiple embeddings', function () {
 
     // Create embeddings for each review using factory
     $reviews->each(function ($review) {
-        Embedding::factory()
-            ->forModel($review)
-            ->create();
+        embedding()->create(data($review));
     });
 
     // Verify initial state
-    expect(Embedding::count())->toBe(3);
+    expect(embedding()->count())->toBe(3);
 
     // Delete all embeddings
     (new PgvectorEngine)->delete($reviews);
 
     // Verify all embeddings were deleted
-    expect(Embedding::count())->toBe(0);
+    expect(embedding()->count())->toBe(0);
 });
 
 test('soft deleting a model does not delete its embedding if scout.soft_delete is true', function () {
@@ -162,7 +175,7 @@ test('soft deleting a model does not delete its embedding if scout.soft_delete i
     $review = ReviewSoftDelete::factory()->create();
 
     // Verify embedding exists
-    expect(Embedding::count())->toBe(1);
+    expect(embedding()->count())->toBe(1);
 
     // Soft delete the model
     $review->delete();
@@ -171,8 +184,8 @@ test('soft deleting a model does not delete its embedding if scout.soft_delete i
     expect($review->trashed())->toBeTrue();
 
     // Verify the embedding still exists
-    expect(Embedding::count())->toBe(1);
-    expect(Embedding::first()->id)->toBe($review->embedding->id);
+    expect(embedding()->count())->toBe(1);
+    expect(embedding()->first()->id)->toBe($review->embedding->id);
 });
 
 test('force deleting a model deletes its embedding even if scout.soft_delete is true', function () {
@@ -181,13 +194,13 @@ test('force deleting a model deletes its embedding even if scout.soft_delete is 
     $review = ReviewSoftDelete::factory()->create();
 
     // Verify embedding exists
-    expect(Embedding::count())->toBe(1);
+    expect(embedding()->count())->toBe(1);
 
     // Soft delete the model
     $review->forceDelete();
 
     // Verify the embedding still exists
-    expect(Embedding::count())->toBe(0);
+    expect(embedding()->count())->toBe(0);
 });
 
 test('paginate returns correct number of results and pagination metadata', function () {
@@ -197,9 +210,7 @@ test('paginate returns correct number of results and pagination metadata', funct
         ->createQuietly();
 
     $reviews->each(function ($review) {
-        Embedding::factory()
-            ->forModel($review)
-            ->create();
+        embedding()->create(data($review));
     });
 
     // Create a Scout builder instance with a search query
@@ -249,9 +260,7 @@ test('paginate handles out of range pages', function () {
         ->createQuietly();
 
     $reviews->each(function ($review) {
-        Embedding::factory()
-            ->forModel($review)
-            ->create();
+        embedding()->create(data($review));
     });
 
     // Test page beyond available results
@@ -266,19 +275,12 @@ test('paginate handles out of range pages', function () {
 test('paginate respects where constraints', function () {
     // Create test models with different ratings
     $reviews = collect([
-        Review::factory()->createQuietly(['score' => 5]),
-        Review::factory()->createQuietly(['score' => 5]),
-        Review::factory()->createQuietly(['score' => 3]),
-        Review::factory()->createQuietly(['score' => 3]),
-        Review::factory()->createQuietly(['score' => 1]),
+        Review::factory()->create(['score' => 5]),
+        Review::factory()->create(['score' => 5]),
+        Review::factory()->create(['score' => 3]),
+        Review::factory()->create(['score' => 3]),
+        Review::factory()->create(['score' => 1]),
     ]);
-
-    // Create embeddings for all reviews
-    $reviews->each(function ($review) {
-        Embedding::factory()
-            ->forModel($review)
-            ->create();
-    });
 
     $results = Review::search('test')
         ->where('score', 5)
@@ -293,25 +295,16 @@ test('paginate respects where constraints', function () {
 
 test('flush method removes all embeddings for a given model type', function () {
     // Create test models using factory
-    $review1 = Review::factory()->createQuietly();
-    $review2 = Review::factory()->createQuietly();
-
-    // Create embeddings for the models using factory
-    Embedding::factory()
-        ->forModel($review1)
-        ->create();
-
-    Embedding::factory()
-        ->forModel($review2)
-        ->create();
+    $review1 = Review::factory()->create();
+    $review2 = Review::factory()->create();
 
     // Verify embeddings exist
-    expect(Embedding::count())->toBe(2);
+    expect(embedding()->count())->toBe(2);
 
     (new Review)->removeAllFromSearch();
 
     // Verify all embeddings were deleted
-    expect(Embedding::count())->toBe(0);
+    expect(embedding()->count())->toBe(0);
 });
 
 test('cursor returns properly ordered lazy collection of models', function () {
