@@ -10,26 +10,26 @@ use Illuminate\Support\Facades\Http;
 use Pgvector\Laravel\Vector;
 use RuntimeException;
 
-class OpenAiHandler implements HandlerContract
+class GeminiHandler implements HandlerContract
 {
-    /**
-     * Get OpenAI embeddings for a given input
-     *
-     * @throws RuntimeException
-     */
     public static function handle(string $input, IndexConfig $config): Vector
     {
-        $cacheKey = $config->name.':'.$config->model.':'.sha1($input);
+        $cacheKey = $config->name.':'.$config->model.':'.sha1($input). 4;
 
         $embedding = Cache::rememberForever($cacheKey, function () use ($input, $config) {
+            $url = $config->url.'/models/'.$config->model.':embedContent?key='.$config->apiKey;
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer '.$config->apiKey,
                 'Content-Type' => 'application/json',
-            ])->post($config->url.'/embeddings', [
-                'input' => $input,
-                'model' => $config->model,
-                'dimensions' => $config->dimensions,
+            ])->post($url, [
+                'model' => 'models/'.$config->model,
+                'output_dimensionality' => $config->dimensions,
+                'taskType' => $config->task,
+                'content' => [
+                    'parts' => [
+                        ['text' => $input],
+                    ],
+                ],
             ]);
 
             static::validateResponse($response);
@@ -40,16 +40,11 @@ class OpenAiHandler implements HandlerContract
         return new Vector($embedding);
     }
 
-    /**
-     * Validate the API response
-     *
-     * @throws RuntimeException
-     */
     protected static function validateResponse(Response $response): void
     {
         if (! $response->successful()) {
             throw new RuntimeException(
-                'OpenAI API request failed: '.($response['error']['message'] ?? $response->body())
+                'Gemini API request failed: '.($response['error']['message'] ?? $response->body())
             );
         }
     }
@@ -63,11 +58,11 @@ class OpenAiHandler implements HandlerContract
      */
     protected static function extractEmbedding(Response $response): array
     {
-        $embedding = $response->json('data.0.embedding');
+        $embedding = $response->json('embedding.values');
 
         if (empty($embedding)) {
             throw new RuntimeException(
-                'No embedding found in OpenAI response: '.$response->body()
+                'No embedding found in Gemini response: '.$response->body()
             );
         }
 

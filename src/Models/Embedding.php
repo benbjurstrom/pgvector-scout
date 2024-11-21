@@ -2,8 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Models;
 
-use BenBjurstrom\PgvectorScout\Database\Factories\EmbeddingFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use BenBjurstrom\PgvectorScout\IndexConfig;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
@@ -21,8 +20,7 @@ use Pgvector\Laravel\Vector;
  * */
 class Embedding extends Model
 {
-    /** @use HasFactory<EmbeddingFactory> */
-    use HasFactory, HasNeighbors;
+    use HasNeighbors;
 
     /**
      * The attributes that aren't mass assignable.
@@ -41,16 +39,6 @@ class Embedding extends Model
     ];
 
     /**
-     * Get the configured table name for the current default handler
-     */
-    protected function getTableName(): string
-    {
-        $default = config('pgvector-scout.default');
-
-        return config("pgvector-scout.handlers.{$default}.table", 'embeddings');
-    }
-
-    /**
      * Get the parent embeddable model.
      *
      * @return MorphTo<Model, $this>
@@ -58,5 +46,40 @@ class Embedding extends Model
     public function embeddable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function forModel(Model $model): Embedding
+    {
+        if (! method_exists($model, 'searchableAs')) {
+            throw new \RuntimeException('Model '.get_class($model).' does not implement the Searchable trait.');
+        }
+
+        $index = $model->searchableAs();
+
+        return $this->forIndex($index);
+    }
+
+    public function forIndex(string $index): Embedding
+    {
+        $config = IndexConfig::from($index);
+
+        $this->setTable($config->table);
+
+        return $this;
+    }
+
+    /**
+     * Create a new instance of the given model.
+     *
+     * @param  array<int, mixed>  $attributes
+     * @param  bool  $exists
+     * @return static
+     */
+    public function newInstance($attributes = [], $exists = false): Embedding
+    {
+        $model = parent::newInstance($attributes, $exists);
+        $model->setTable($this->table);
+
+        return $model;
     }
 }

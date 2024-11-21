@@ -2,7 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Actions;
 
-use BenBjurstrom\PgvectorScout\HandlerConfig;
+use BenBjurstrom\PgvectorScout\IndexConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +16,7 @@ class CreateEmbedding
      */
     public static function handle(
         Model $model,
-        HandlerConfig $config
+        IndexConfig $config
     ): ?Embedding {
 
         // validate the model is searchable
@@ -46,7 +46,7 @@ class CreateEmbedding
         }
 
         // If not fetch an embedding for the content and save it
-        $vector = $config->class::handle($content, $config);
+        $vector = $config->handler::handle($content, $config);
 
         return static::updateOrCreateEmbedding($model, $contentHash, $vector, $config);
     }
@@ -88,9 +88,10 @@ class CreateEmbedding
     protected static function existingEmbedding(
         Model $model,
         string $contentHash,
-        HandlerConfig $config
+        IndexConfig $config
     ): ?Embedding {
-        return Embedding::query()
+        return (new Embedding)
+            ->forModel($model)
             ->where('embeddable_type', get_class($model))
             ->where('embeddable_id', $model->getKey())
             ->where('content_hash', $contentHash)
@@ -105,7 +106,7 @@ class CreateEmbedding
         Model $model,
         string $contentHash,
         Vector $vector,
-        HandlerConfig $config
+        IndexConfig $config
     ): Embedding {
         Log::info('Updating embedding', [
             'id' => $model->getKey(),
@@ -113,16 +114,18 @@ class CreateEmbedding
             'embedding_model' => $config->model,
         ]);
 
-        return Embedding::updateOrCreate(
-            [
-                'embeddable_type' => get_class($model),
-                'embeddable_id' => $model->getKey(),
-            ],
-            [
-                'embedding_model' => $config->model,
-                'content_hash' => $contentHash,
-                'vector' => $vector,
-            ]
-        );
+        return (new Embedding)
+            ->forModel($model)
+            ->updateOrCreate(
+                [
+                    'embeddable_type' => get_class($model),
+                    'embeddable_id' => $model->getKey(),
+                ],
+                [
+                    'embedding_model' => $config->model,
+                    'content_hash' => $contentHash,
+                    'vector' => $vector,
+                ]
+            );
     }
 }

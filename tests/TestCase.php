@@ -34,6 +34,5 @@ class TestCase extends Orchestra
         config()->set('database.default', 'pgsql');
         config()->set('database.connections.pgsql.username', 'postgres');
         config()->set('scout.driver', 'pgvector');
-        config()->set('pgvector-scout.default', 'fake');
     }
 }

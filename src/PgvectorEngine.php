@@ -10,6 +10,7 @@ use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
@@ -34,7 +35,7 @@ class PgvectorEngine extends Engine
             'model' => get_class($models->first()),
         ]);
 
-        $config = HandlerConfig::fromConfig();
+        $config = IndexConfig::fromModel($models->first());
         $models->each(function (Model $model) use ($config) {
             CreateEmbedding::handle($model, $config);
         });
@@ -48,11 +49,16 @@ class PgvectorEngine extends Engine
      */
     public function search(Builder $builder): Collection
     {
+        $model = $builder->model;
         if (blank($builder->query)) {
-            return (new Embedding)->newCollection();
+            return (new Embedding)->forModel($model)->newCollection();
         }
 
-        $searchVector = FetchEmbedding::handle($builder->query);
+        $config = IndexConfig::fromModel($model);
+        $searchVector = FetchEmbedding::handle(
+            $builder->query,
+            $config
+        );
 
         $query = SearchEmbedding::handle(
             $builder,
@@ -70,11 +76,16 @@ class PgvectorEngine extends Engine
      */
     public function paginate(Builder $builder, $perPage, $page): LengthAwarePaginator
     {
+        $model = $builder->model;
         if (blank($builder->query)) {
-            return (new Embedding)->paginate();
+            return (new Embedding)->forModel($model)->paginate();
         }
 
-        $searchVector = FetchEmbedding::handle($builder->query);
+        $config = IndexConfig::fromModel($model);
+        $searchVector = FetchEmbedding::handle(
+            $builder->query,
+            $config,
+        );
 
         $builder->take($perPage);
         $query = SearchEmbedding::handle(
@@ -94,7 +105,23 @@ class PgvectorEngine extends Engine
      */
     public function createIndex($name, array $options = [])
     {
-        // Not implemented
+        $index = IndexConfig::from($name);
+
+        $string = file_get_contents(__DIR__.'/../database/migrations/create_embeddings_table.php.stub');
+
+        if (! $string) {
+            throw new \RuntimeException('Could not read migration stub file');
+        }
+
+        $result = Blade::render($string, [
+            'table' => $index->table,
+            'dimensions' => $index->dimensions,
+        ]);
+
+        $result = '<?php'.PHP_EOL.PHP_EOL.$result;
+
+        // add to datbase/migrations using database_path()
+        file_put_contents(database_path('migrations/'.date('Y_m_d_His').'_create_'.$index->table.'_table.php'), $result);
     }
 
     /**
@@ -116,7 +143,7 @@ class PgvectorEngine extends Engine
      */
     public function flush($model)
     {
-        Embedding::query()
+        (new Embedding)->forModel($model)
             ->where('embeddable_type', get_class($model))
             ->delete();
     }
@@ -134,8 +161,9 @@ class PgvectorEngine extends Engine
         }
 
         // Use a single query instead of multiple queries
-        Embedding::query()
-            ->where('embeddable_type', get_class($models->first()))
+        $model = $models->first();
+        (new Embedding)->forModel($model)
+            ->where('embeddable_type', get_class($model))
             ->whereIn('embeddable_id', $models->pluck('id'))
             ->delete();
     }

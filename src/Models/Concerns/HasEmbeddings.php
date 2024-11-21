@@ -14,4 +14,15 @@ trait HasEmbeddings
     {
         return $this->morphOne(Embedding::class, 'embeddable');
     }
+
+    protected function newRelatedInstance($class)
+    {
+        $instance = tap(new $class, function ($instance) {
+            if (! $instance->getConnectionName()) {
+                $instance->setConnection($this->connection);
+            }
+        });
+
+        return $instance->forModel($this);
+    }
 }
