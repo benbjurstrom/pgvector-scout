@@ -14,11 +14,11 @@ use Ramsey\Uuid\Uuid;
 
 beforeEach(function () {
     // Load the reviews table migration for testing
-    $migration = include __DIR__.'/Support/Migrations/2024_11_06_150840_create_reviews_table.php';
+    $migration = include __DIR__.'/Support/Migrations/2024_11_06_000000_create_reviews_table.php';
     $migration->up();
 
     // Load the embeddings table migration
-    $migration = include __DIR__.'/../database/migrations/create_embeddings_table.php.stub';
+    $migration = include __DIR__.'/Support/Migrations/2024_11_06_000000_create_embeddings_table.php';
     $migration->up();
 });
 

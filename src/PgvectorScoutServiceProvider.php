@@ -19,14 +19,9 @@ class PgvectorScoutServiceProvider extends PackageServiceProvider
         $package
             ->name('pgvector-scout')
             ->hasConfigFile()
-            ->hasViews()
-            ->hasMigration('create_embeddings_table')
-            ->runsMigrations()
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command
                     ->publishConfigFile()
-                    ->publishMigrations()
-                    ->askToRunMigrations()
                     ->askToStarRepoOnGitHub('benbjurstrom/pgvector-scout');
             });
     }

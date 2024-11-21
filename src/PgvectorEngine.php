@@ -10,6 +10,7 @@ use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
@@ -53,9 +54,10 @@ class PgvectorEngine extends Engine
             return (new Embedding)->forModel($model)->newCollection();
         }
 
+        $config = IndexConfig::fromModel($model);
         $searchVector = FetchEmbedding::handle(
             $builder->query,
-            $model->searchableAs()
+            $config
         );
 
         $query = SearchEmbedding::handle(
@@ -79,9 +81,10 @@ class PgvectorEngine extends Engine
             return (new Embedding)->forModel($model)->paginate();
         }
 
+        $config = IndexConfig::fromModel($model);
         $searchVector = FetchEmbedding::handle(
             $builder->query,
-            $model->searchableAs(),
+            $config,
         );
 
         $builder->take($perPage);
@@ -102,7 +105,23 @@ class PgvectorEngine extends Engine
      */
     public function createIndex($name, array $options = [])
     {
-        // Not implemented
+        $index = IndexConfig::from($name);
+
+        $string = file_get_contents(__DIR__.'/../database/migrations/create_embeddings_table.php.stub');
+
+        if (! $string) {
+            throw new \RuntimeException('Could not read migration stub file');
+        }
+
+        $result = Blade::render($string, [
+            'table' => $index->table,
+            'dimensions' => $index->dimensions,
+        ]);
+
+        $result = '<?php'.PHP_EOL.PHP_EOL.$result;
+
+        // add to datbase/migrations using database_path()
+        file_put_contents(database_path('migrations/'.date('Y_m_d_His').'_create_'.$index->table.'_table.php'), $result);
     }
 
     /**

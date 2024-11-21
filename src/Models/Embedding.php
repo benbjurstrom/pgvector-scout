@@ -2,6 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Models;
 
+use BenBjurstrom\PgvectorScout\IndexConfig;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
@@ -55,9 +56,14 @@ class Embedding extends Model
 
         $index = $model->searchableAs();
 
-        $table = config("pgvector-scout.indexes.{$index}.table");
+        return $this->forIndex($index);
+    }
 
-        $this->setTable($table);
+    public function forIndex(string $index): Embedding
+    {
+        $config = IndexConfig::from($index);
+
+        $this->setTable($config->table);
 
         return $this;
     }
