@@ -19,13 +19,13 @@ To see a full example showing how to use this package check out [benbjurstrom/pg
 composer require benbjurstrom/pgvector-scout
 ```
 
-### 2. Publish the scout config and the package config:
+#### 2. Publish the scout config and the package config:
 ```bash
 php artisan vendor:publish --tag="scout-config"
 php artisan vendor:publish --tag="pgvector-scout-config"
 ```
 
-This is the contents of the published `pgvector-scout.php` config file. By default it contains 3 different indexes, one for OpenAI, one for Gemini, and one for testing. The rest of this guide will use the OpenAI index as an example.
+This is the contents of the published `pgvector-scout.php` config file. By default it contains 3 different indexes, one for OpenAI, one for Google Gemini, and one for testing. The rest of this guide will use the OpenAI index as an example.
 
 ```php
 return [
@@ -68,23 +68,20 @@ return [
 ];
 ```
 
-### 3. Set the scout driver to `pgvector` in your `.env` file and add your OpenAI API key:
+#### 3. Set the scout driver to pgvector in your .env file and add your OpenAI API key:
 ```env
 SCOUT_DRIVER=pgvector
 OPENAI_API_KEY=your-api-key
 ```
 
-#### 4. Run the scout index command to create a migration file for your embeddings
-
-In this case we'll use the `openai` index.
-
+#### 4. Run the scout index command to create a migration file for your embeddings:
 ```bash
 php artisan scout:index openai
 php artisan migrate
 ```
 
 #### 5. Update the model you wish to make searchable:
-Add the `HasEmbeddings` and `Searchable` traits to your model. Additionally add a `searchableAs()` method that returns the name of your index. Again we're using the `openai` index. Finally implement `toSearchableArray()` with the content from the model you want converted into an embedding.
+Add the `HasEmbeddings` and `Searchable` traits to your model. Additionally add a `searchableAs()` method that returns the name of your index. Finally implement `toSearchableArray()` with the content from the model you want converted into an embedding.
 
 ```php
 use BenBjurstrom\PgvectorScout\Models\Concerns\HasEmbeddings;
@@ -103,7 +100,7 @@ class YourModel extends Model
     }
 
     /**
-     * Get the indexable data array for the model.
+     * Get the indexable content for the model.
      */
     public function toSearchableArray(): array
     {
