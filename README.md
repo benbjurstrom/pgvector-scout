@@ -40,7 +40,7 @@ return [
     */
     'indexes' => [
         'openai' => [
-            'handler' => \BenBjurstrom\PgvectorScout\Handlers\OpenAiHandler::class,
+            'handler' => Handlers\OpenAiHandler::class,
             'model' => 'text-embedding-3-small',
             'dimensions' => 256, // See Reducing embedding dimensions https://platform.openai.com/docs/guides/embeddings#use-cases
             'url' => 'https://api.openai.com/v1',
@@ -48,7 +48,7 @@ return [
             'table' => 'openai_embeddings',
         ],
         'gemini' => [
-            'handler' => \BenBjurstrom\PgvectorScout\Handlers\GeminiHandler::class,
+            'handler' => Handlers\GeminiHandler::class,
             'model' => 'text-embedding-004',
             'dimensions' => 256,
             'url' => 'https://generativelanguage.googleapis.com/v1beta',
@@ -56,8 +56,16 @@ return [
             'table' => 'gemini_embeddings',
             'task' => 'SEMANTIC_SIMILARITY', // https://ai.google.dev/api/embeddings#tasktype
         ],
+        'ollama' => [
+            'handler' => Handlers\OllamaHandler::class,
+            'model' => 'nomic-embed-text',
+            'dimensions' => 768,
+            'url' => 'http://localhost:11434/api/embeddings',
+            'api_key' => 'none',
+            'table' => 'ollama_embeddings',
+        ],
         'fake' => [ // Used for testing
-            'handler' => \BenBjurstrom\PgvectorScout\Handlers\FakeHandler::class,
+            'handler' => Handlers\FakeHandler::class,
             'model' => 'fake',
             'dimensions' => 3,
             'url' => 'https://example.com',
