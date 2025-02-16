@@ -15,6 +15,14 @@ trait HasEmbeddings
         return $this->morphOne(Embedding::class, 'embeddable');
     }
 
+    /**
+     * Create a new model instance for a related model.
+     *
+     * @template TRelatedModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  class-string<TRelatedModel>  $class
+     * @return TRelatedModel
+     */
     protected function newRelatedInstance($class)
     {
         $instance = tap(new $class, function ($instance) {
@@ -23,6 +31,10 @@ trait HasEmbeddings
             }
         });
 
-        return $instance->forModel($this);
+        if(method_exists($instance, 'forModel')){
+            return $instance->forModel($this);
+        }
+
+        return $instance;
     }
 }
