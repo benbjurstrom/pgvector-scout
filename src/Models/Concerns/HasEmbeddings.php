@@ -31,7 +31,7 @@ trait HasEmbeddings
             }
         });
 
-        if(method_exists($instance, 'forModel')){
+        if (method_exists($instance, 'forModel')) {
             return $instance->forModel($this);
         }
 
