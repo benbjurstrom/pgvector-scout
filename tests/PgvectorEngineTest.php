@@ -378,3 +378,37 @@ test('keys method handles empty search results', function () {
         ->toBeInstanceOf(\Illuminate\Support\Collection::class)
         ->and($results->count())->toBe(0);
 });
+
+test('search method supports whereIn constraints', function () {
+    // Create test models with different scores
+    $review1 = Review::factory()->create(['score' => 5]);
+    $review2 = Review::factory()->create(['score' => 3]);
+    $review3 = Review::factory()->create(['score' => 1]);
+    $review4 = Review::factory()->create(['score' => 5]);
+    $review5 = Review::factory()->create(['score' => 2]);
+
+    $results = Review::search('test')
+        ->whereIn('score', [1, 5])
+        ->get();
+
+    expect($results)
+        ->toHaveCount(3)
+        ->and($results->pluck('score')->all())->toMatchArray([5, 1, 5]);
+});
+
+test('search method supports whereNotIn constraints', function () {
+    // Create test models with different scores
+    $review1 = Review::factory()->create(['score' => 5]);
+    $review2 = Review::factory()->create(['score' => 3]);
+    $review3 = Review::factory()->create(['score' => 1]);
+    $review4 = Review::factory()->create(['score' => 5]);
+    $review5 = Review::factory()->create(['score' => 2]);
+
+    $results = Review::search('test')
+        ->whereNotIn('score', [1, 5])
+        ->get();
+
+    expect($results)
+        ->toHaveCount(2)
+        ->and($results->pluck('score')->all())->toMatchArray([3, 2]);
+});

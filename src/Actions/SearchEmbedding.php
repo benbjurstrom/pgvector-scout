@@ -36,6 +36,18 @@ class SearchEmbedding
                 }
             }
 
+            if ($builder->whereIns) {
+                foreach ($builder->whereIns as $field => $values) {
+                    $query->whereIn($field, $values);
+                }
+            }
+
+            if ($builder->whereNotIns) {
+                foreach ($builder->whereNotIns as $field => $values) {
+                    $query->whereNotIn($field, $values);
+                }
+            }
+
             if (static::usesSoftDelete($model)) {
                 $query->whereNull('deleted_at');
             }
