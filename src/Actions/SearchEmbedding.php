@@ -28,7 +28,7 @@ class SearchEmbedding
             ->forModel($model)
             ->where('embeddable_type', $model->getMorphClass());
 
-        $query->whereHas('embeddable', function ($query) use ($builder, $model) {
+        $query->whereHasMorph('embeddable', [$model->getMorphClass()], function ($query) use ($builder, $model) {
 
             if ($builder->wheres) {
                 foreach ($builder->wheres as $key => $value) {
