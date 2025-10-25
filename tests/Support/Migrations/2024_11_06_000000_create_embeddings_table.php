@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('embedding_model');
             $table->uuid('content_hash');
             $table->vector('vector', 3);
+            $table->boolean('__soft_deleted')->default(0);
             $table->timestamps();
 
             // Add indexes

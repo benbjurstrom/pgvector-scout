@@ -15,6 +15,7 @@ use Pgvector\Laravel\Vector;
  * @property string $embedding_model
  * @property string $content_hash
  * @property Vector $vector
+ * @property int $__soft_deleted
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * */

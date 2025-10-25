@@ -70,7 +70,7 @@ test('search method can filter by model properties', function () {
     expect($results->first()->embedding->neighbor_distance)->toBeFloat();
 
     $queries = DB::getQueryLog();
-    expect($queries)->toHaveCount(3);
+    expect($queries)->toHaveCount(2);
 });
 
 test('search method can order by model properties', function () {

@@ -114,6 +114,17 @@ class CreateEmbedding
             'embedding_model' => $config->model,
         ]);
 
+        $attributes = [
+            'embedding_model' => $config->model,
+            'content_hash' => $contentHash,
+            'vector' => $vector,
+        ];
+
+        // Add __soft_deleted if Scout's soft delete is enabled
+        if (config('scout.soft_delete', false) && method_exists($model, 'trashed')) {
+            $attributes['__soft_deleted'] = $model->trashed() ? 1 : 0;
+        }
+
         return (new Embedding)
             ->forModel($model)
             ->updateOrCreate(
@@ -121,11 +132,7 @@ class CreateEmbedding
                     'embeddable_type' => get_class($model),
                     'embeddable_id' => $model->getKey(),
                 ],
-                [
-                    'embedding_model' => $config->model,
-                    'content_hash' => $contentHash,
-                    'vector' => $vector,
-                ]
+                $attributes
             );
     }
 }
