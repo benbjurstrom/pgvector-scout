@@ -36,6 +36,7 @@ class SearchEmbedding
         $query->whereHasMorph('embeddable', [$model->getMorphClass()], function ($query) use ($builder, $model) {
             // When Scout soft delete is enabled, include soft-deleted models in the relationship check
             if (static::usesSoftDelete($model) && config('scout.soft_delete', false)) {
+                /** @phpstan-ignore-next-line */
                 $query->withTrashed();
             }
 
