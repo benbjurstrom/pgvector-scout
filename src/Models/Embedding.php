@@ -15,6 +15,7 @@ use Pgvector\Laravel\Vector;
  * @property string $embedding_model
  * @property string $content_hash
  * @property Vector $vector
+ * @property int $__soft_deleted
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * */
@@ -23,11 +24,18 @@ class Embedding extends Model
     use HasNeighbors;
 
     /**
-     * The attributes that aren't mass assignable.
+     * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
-    protected $guarded = [];
+    protected $fillable = [
+        'embeddable_id',
+        'embeddable_type',
+        'embedding_model',
+        'content_hash',
+        'vector',
+        '__soft_deleted',
+    ];
 
     /**
      * The attributes that should be cast.
@@ -36,6 +44,7 @@ class Embedding extends Model
      */
     protected $casts = [
         'vector' => Vector::class,
+        '__soft_deleted' => 'boolean',
     ];
 
     /**

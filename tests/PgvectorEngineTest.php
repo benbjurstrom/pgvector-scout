@@ -70,7 +70,7 @@ test('search method can filter by model properties', function () {
     expect($results->first()->embedding->neighbor_distance)->toBeFloat();
 
     $queries = DB::getQueryLog();
-    expect($queries)->toHaveCount(3);
+    expect($queries)->toHaveCount(2);
 });
 
 test('search method can order by model properties', function () {
@@ -174,6 +174,7 @@ test('soft deleting a model does not delete its embedding if scout.soft_delete i
 
     config()->set('scout.soft_delete', true);
     $review = ReviewSoftDelete::factory()->create();
+    $embedding = $review->embedding;
 
     // Verify embedding exists
     expect(embedding()->count())->toBe(1);
@@ -184,9 +185,24 @@ test('soft deleting a model does not delete its embedding if scout.soft_delete i
     // Verify the model is soft deleted
     expect($review->trashed())->toBeTrue();
 
-    // Verify the embedding still exists
-    expect(embedding()->count())->toBe(1);
-    expect(embedding()->first()->id)->toBe($review->embedding->id);
+    // Verify the embedding still exists with table contains
+    $this->assertDatabaseHas($embedding->getTable(), [
+        'id' => $embedding->id,
+        '__soft_deleted' => true,
+    ]);
+});
+
+test('soft deleted models excluded from search', function () {
+    config()->set('scout.soft_delete', true);
+
+    $deleted = ReviewSoftDelete::factory()->create();
+
+    expect(ReviewSoftDelete::search('test')->get())->toHaveCount(1);
+
+    $deleted->delete();
+
+    $results = ReviewSoftDelete::search('test')->get();
+    expect($results)->toHaveCount(0);
 });
 
 test('force deleting a model deletes its embedding even if scout.soft_delete is true', function () {
@@ -202,6 +218,71 @@ test('force deleting a model deletes its embedding even if scout.soft_delete is 
 
     // Verify the embedding still exists
     expect(embedding()->count())->toBe(0);
+});
+
+test('withTrashed includes soft deleted models in search results', function () {
+    config()->set('scout.soft_delete', true);
+
+    $active = ReviewSoftDelete::factory()->create();
+    $deleted = ReviewSoftDelete::factory()->create();
+    $deleted->delete();
+
+    // Search without withTrashed - should only get active model
+    $results = ReviewSoftDelete::search('test')->get();
+    expect($results)->toHaveCount(1);
+    expect($results->first()->id)->toBe($active->id);
+
+    // Search with withTrashed - should get both models
+    $results = ReviewSoftDelete::search('test')->withTrashed()->get();
+    expect($results)->toHaveCount(2);
+    expect($results->pluck('id')->all())->toContain($active->id, $deleted->id);
+});
+
+test('onlyTrashed returns only soft deleted models in search results', function () {
+    config()->set('scout.soft_delete', true);
+
+    $active = ReviewSoftDelete::factory()->create();
+    $deleted = ReviewSoftDelete::factory()->create();
+    $deleted->delete();
+
+    $results = ReviewSoftDelete::search('test')->onlyTrashed()->get();
+    expect($results)->toHaveCount(1);
+    expect($results->first()->id)->toBe($deleted->id);
+});
+
+test('withTrashed works with where constraints', function () {
+    config()->set('scout.soft_delete', true);
+
+    $active = ReviewSoftDelete::factory()->create(['score' => 5]);
+    ReviewSoftDelete::factory()->create(['score' => 3]);
+
+    $deleted = ReviewSoftDelete::factory()->create(['score' => 5]);
+    $deleted->delete();
+
+    $results = ReviewSoftDelete::search('test')
+        ->where('score', 5)
+        ->withTrashed()
+        ->get();
+
+    expect($results)->toHaveCount(2);
+    expect($results->pluck('id')->all())->toContain($active->id, $deleted->id);
+});
+
+test('onlyTrashed works with where constraints', function () {
+    config()->set('scout.soft_delete', true);
+
+    ReviewSoftDelete::factory()->create(['score' => 5]);
+
+    $deleted = ReviewSoftDelete::factory()->create(['score' => 5]);
+    $deleted->delete();
+
+    $results = ReviewSoftDelete::search('test')
+        ->where('score', 5)
+        ->onlyTrashed()
+        ->get();
+
+    expect($results)->toHaveCount(1);
+    expect($results->first()->id)->toBe($deleted->id);
 });
 
 test('paginate returns correct number of results and pagination metadata', function () {

@@ -28,10 +28,24 @@ class SearchEmbedding
             ->forModel($model)
             ->where('embeddable_type', $model->getMorphClass());
 
+        // Apply __soft_deleted property from the builder
+        if (isset($builder->wheres['__soft_deleted'])) {
+            $query->where('__soft_deleted', $builder->wheres['__soft_deleted']);
+        }
+
         $query->whereHasMorph('embeddable', [$model->getMorphClass()], function ($query) use ($builder, $model) {
+            // When Scout soft delete is enabled, include soft-deleted models in the relationship check
+            if (static::usesSoftDelete($model) && config('scout.soft_delete', false)) {
+                /** @phpstan-ignore-next-line */
+                $query->withTrashed();
+            }
 
             if ($builder->wheres) {
                 foreach ($builder->wheres as $key => $value) {
+                    // Skip __soft_deleted as it's handled on the embeddings table
+                    if ($key === '__soft_deleted') {
+                        continue;
+                    }
                     $query->where($key, $value);
                 }
             }
@@ -46,10 +60,6 @@ class SearchEmbedding
                 foreach ($builder->whereNotIns as $field => $values) {
                     $query->whereNotIn($field, $values);
                 }
-            }
-
-            if (static::usesSoftDelete($model)) {
-                $query->whereNull('deleted_at');
             }
         });
 
