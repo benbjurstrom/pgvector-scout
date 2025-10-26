@@ -220,6 +220,71 @@ test('force deleting a model deletes its embedding even if scout.soft_delete is 
     expect(embedding()->count())->toBe(0);
 });
 
+test('withTrashed includes soft deleted models in search results', function () {
+    config()->set('scout.soft_delete', true);
+
+    $active = ReviewSoftDelete::factory()->create();
+    $deleted = ReviewSoftDelete::factory()->create();
+    $deleted->delete();
+
+    // Search without withTrashed - should only get active model
+    $results = ReviewSoftDelete::search('test')->get();
+    expect($results)->toHaveCount(1);
+    expect($results->first()->id)->toBe($active->id);
+
+    // Search with withTrashed - should get both models
+    $results = ReviewSoftDelete::search('test')->withTrashed()->get();
+    expect($results)->toHaveCount(2);
+    expect($results->pluck('id')->all())->toContain($active->id, $deleted->id);
+});
+
+test('onlyTrashed returns only soft deleted models in search results', function () {
+    config()->set('scout.soft_delete', true);
+
+    $active = ReviewSoftDelete::factory()->create();
+    $deleted = ReviewSoftDelete::factory()->create();
+    $deleted->delete();
+
+    $results = ReviewSoftDelete::search('test')->onlyTrashed()->get();
+    expect($results)->toHaveCount(1);
+    expect($results->first()->id)->toBe($deleted->id);
+});
+
+test('withTrashed works with where constraints', function () {
+    config()->set('scout.soft_delete', true);
+
+    $active = ReviewSoftDelete::factory()->create(['score' => 5]);
+    ReviewSoftDelete::factory()->create(['score' => 3]);
+
+    $deleted = ReviewSoftDelete::factory()->create(['score' => 5]);
+    $deleted->delete();
+
+    $results = ReviewSoftDelete::search('test')
+        ->where('score', 5)
+        ->withTrashed()
+        ->get();
+
+    expect($results)->toHaveCount(2);
+    expect($results->pluck('id')->all())->toContain($active->id, $deleted->id);
+});
+
+test('onlyTrashed works with where constraints', function () {
+    config()->set('scout.soft_delete', true);
+
+    ReviewSoftDelete::factory()->create(['score' => 5]);
+
+    $deleted = ReviewSoftDelete::factory()->create(['score' => 5]);
+    $deleted->delete();
+
+    $results = ReviewSoftDelete::search('test')
+        ->where('score', 5)
+        ->onlyTrashed()
+        ->get();
+
+    expect($results)->toHaveCount(1);
+    expect($results->first()->id)->toBe($deleted->id);
+});
+
 test('paginate returns correct number of results and pagination metadata', function () {
     // Create test models and embeddings
     $reviews = Review::factory()
