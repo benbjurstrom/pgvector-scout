@@ -34,6 +34,7 @@ class CreateEmbedding
         $data = array_merge(
             $searchableData,
             $model->scoutMetadata(),
+            ['__soft_deleted' => method_exists($model, 'trashed') ? $model->trashed() : false]
         );
 
         $content = static::arrayToLabeledText($data);
@@ -122,7 +123,7 @@ class CreateEmbedding
 
         // Add __soft_deleted if Scout's soft delete is enabled
         if (config('scout.soft_delete', false) && method_exists($model, 'trashed')) {
-            $attributes['__soft_deleted'] = $model->trashed() ? 1 : 0;
+            $attributes['__soft_deleted'] = $model->trashed();
         }
 
         return (new Embedding)
