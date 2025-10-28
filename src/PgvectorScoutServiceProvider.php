@@ -3,11 +3,11 @@
 namespace BenBjurstrom\PgvectorScout;
 
 use Closure;
+use Laravel\Scout\Builder;
 use Laravel\Scout\EngineManager;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Laravel\Scout\Builder;
 
 class PgvectorScoutServiceProvider extends PackageServiceProvider
 {
@@ -37,9 +37,10 @@ class PgvectorScoutServiceProvider extends PackageServiceProvider
         });
 
         Builder::macro('whereSearchable', function (Closure $apply) {
-            /** @var Builder $this */
+            /** @var Builder<\Illuminate\Database\Eloquent\Model> $this */
             $this->options['pgvector_searchable_wheres'] ??= [];
             $this->options['pgvector_searchable_wheres'][] = $apply;
+
             return $this;
         });
     }

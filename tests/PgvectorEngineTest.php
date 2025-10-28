@@ -525,11 +525,10 @@ test('whereSearchable can filter by parent relationship with whereHas', function
 
     // Search with whereSearchable filtering
     $results = DocumentChunk::search('test')
-        ->whereSearchable(fn ($query) =>
-            $query->whereHas('document', function ($d) use ($userId) {
-                $d->where('status', 'active')
-                  ->where('user_id', $userId);
-            })
+        ->whereSearchable(fn ($query) => $query->whereHas('document', function ($d) use ($userId) {
+            $d->where('status', 'active')
+                ->where('user_id', $userId);
+        })
         )
         ->get();
 
@@ -562,12 +561,11 @@ test('whereSearchable can filter by nested relationships with tags', function ()
 
     // Complex whereSearchable with nested relationships
     $results = DocumentChunk::search('test')
-        ->whereSearchable(fn ($query) =>
-            $query->whereHas('document', function ($d) use ($userId) {
-                $d->where('status', 'active')
-                  ->where('user_id', $userId)
-                  ->whereHas('tags', fn ($t) => $t->where('slug', 'meeting-notes'));
-            })
+        ->whereSearchable(fn ($query) => $query->whereHas('document', function ($d) use ($userId) {
+            $d->where('status', 'active')
+                ->where('user_id', $userId)
+                ->whereHas('tags', fn ($t) => $t->where('slug', 'meeting-notes'));
+        })
         )
         ->get();
 
@@ -589,11 +587,9 @@ test('whereSearchable can be chained multiple times', function () {
 
     // Chain multiple whereSearchable calls
     $results = DocumentChunk::search('test')
-        ->whereSearchable(fn ($query) =>
-            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
-        ->whereSearchable(fn ($query) =>
-            $query->whereHas('document', fn ($d) => $d->where('status', 'active'))
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('status', 'active'))
         )
         ->get();
 
@@ -614,8 +610,7 @@ test('whereSearchable works with standard where constraints', function () {
 
     // Combine whereSearchable with standard where
     $results = DocumentChunk::search('test')
-        ->whereSearchable(fn ($query) =>
-            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
         ->where('chunk_number', 1)
         ->get();
@@ -631,8 +626,7 @@ test('whereSearchable returns empty results when no matches', function () {
 
     // Search for non-existent user
     $results = DocumentChunk::search('test')
-        ->whereSearchable(fn ($query) =>
-            $query->whereHas('document', fn ($d) => $d->where('user_id', 'non-existent'))
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', 'non-existent'))
         )
         ->get();
 
@@ -650,10 +644,9 @@ test('whereSearchable works with joins', function () {
 
     // Use whereSearchable with a join to documents table
     $results = DocumentChunk::search('test')
-        ->whereSearchable(fn ($query) =>
-            $query->join('documents', 'document_chunks.document_id', '=', 'documents.id')
-                ->where('documents.user_id', $userId)
-                ->where('documents.status', 'active')
+        ->whereSearchable(fn ($query) => $query->join('documents', 'document_chunks.document_id', '=', 'documents.id')
+            ->where('documents.user_id', $userId)
+            ->where('documents.status', 'active')
         )
         ->get();
 
@@ -675,8 +668,7 @@ test('whereSearchable works with pagination', function () {
 
     // Test pagination with whereSearchable
     $page1 = DocumentChunk::search('test')
-        ->whereSearchable(fn ($query) =>
-            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
         ->paginate(5, page: 1);
 
@@ -685,8 +677,7 @@ test('whereSearchable works with pagination', function () {
         ->and($page1->total())->toBe(10);
 
     $page2 = DocumentChunk::search('test')
-        ->whereSearchable(fn ($query) =>
-            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
         ->paginate(5, page: 2);
 
@@ -705,8 +696,7 @@ test('whereSearchable works with cursor', function () {
     DocumentChunk::factory()->count(2)->create(['document_id' => $doc2->id]);
 
     $results = DocumentChunk::search('test')
-        ->whereSearchable(fn ($query) =>
-            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
         ->cursor();
 
