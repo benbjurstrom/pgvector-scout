@@ -510,7 +510,7 @@ test('search method supports whereNotIn constraints', function () {
         ->and($results->pluck('score')->all())->toMatchArray([3, 2]);
 });
 
-test('whereEloquent can filter by parent relationship with whereHas', function () {
+test('whereSearchable can filter by parent relationship with whereHas', function () {
     $userId = 'user-123';
 
     // Create documents with different users and statuses
@@ -523,14 +523,12 @@ test('whereEloquent can filter by parent relationship with whereHas', function (
     $chunk2 = DocumentChunk::factory()->create(['document_id' => $doc2->id, 'content' => 'meeting notes']);
     $chunk3 = DocumentChunk::factory()->create(['document_id' => $doc3->id, 'content' => 'meeting notes']);
 
-    // Search with whereEloquent filtering through embeddable relationship
+    // Search with whereSearchable filtering
     $results = DocumentChunk::search('test')
-        ->whereEloquent(fn ($q) =>
-            $q->whereHas('embeddable', function ($chunk) use ($userId) {
-                $chunk->whereHas('document', function ($d) use ($userId) {
-                    $d->where('status', 'active')
-                      ->where('user_id', $userId);
-                });
+        ->whereSearchable(fn ($query) =>
+            $query->whereHas('document', function ($d) use ($userId) {
+                $d->where('status', 'active')
+                  ->where('user_id', $userId);
             })
         )
         ->get();
@@ -540,7 +538,7 @@ test('whereEloquent can filter by parent relationship with whereHas', function (
         ->and($results->first()->id)->toBe($chunk1->id);
 });
 
-test('whereEloquent can filter by nested relationships with tags', function () {
+test('whereSearchable can filter by nested relationships with tags', function () {
     $userId = 'user-123';
 
     // Create tags
@@ -562,15 +560,13 @@ test('whereEloquent can filter by nested relationships with tags', function () {
     $chunk2 = DocumentChunk::factory()->create(['document_id' => $doc2->id]);
     $chunk3 = DocumentChunk::factory()->create(['document_id' => $doc3->id]);
 
-    // Complex whereEloquent with nested relationships through embeddable
+    // Complex whereSearchable with nested relationships
     $results = DocumentChunk::search('test')
-        ->whereEloquent(fn ($q) =>
-            $q->whereHas('embeddable', function ($chunk) use ($userId) {
-                $chunk->whereHas('document', function ($d) use ($userId) {
-                    $d->where('status', 'active')
-                      ->where('user_id', $userId)
-                      ->whereHas('tags', fn ($t) => $t->where('slug', 'meeting-notes'));
-                });
+        ->whereSearchable(fn ($query) =>
+            $query->whereHas('document', function ($d) use ($userId) {
+                $d->where('status', 'active')
+                  ->where('user_id', $userId)
+                  ->whereHas('tags', fn ($t) => $t->where('slug', 'meeting-notes'));
             })
         )
         ->get();
@@ -580,7 +576,7 @@ test('whereEloquent can filter by nested relationships with tags', function () {
         ->and($results->first()->id)->toBe($chunk1->id);
 });
 
-test('whereEloquent can be chained multiple times', function () {
+test('whereSearchable can be chained multiple times', function () {
     $userId = 'user-123';
 
     $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
@@ -591,17 +587,13 @@ test('whereEloquent can be chained multiple times', function () {
     $chunk2 = DocumentChunk::factory()->create(['document_id' => $doc2->id]);
     $chunk3 = DocumentChunk::factory()->create(['document_id' => $doc3->id]);
 
-    // Chain multiple whereEloquent calls through embeddable
+    // Chain multiple whereSearchable calls
     $results = DocumentChunk::search('test')
-        ->whereEloquent(fn ($q) =>
-            $q->whereHas('embeddable', function ($chunk) use ($userId) {
-                $chunk->whereHas('document', fn ($d) => $d->where('user_id', $userId));
-            })
+        ->whereSearchable(fn ($query) =>
+            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
-        ->whereEloquent(fn ($q) =>
-            $q->whereHas('embeddable', function ($chunk) {
-                $chunk->whereHas('document', fn ($d) => $d->where('status', 'active'));
-            })
+        ->whereSearchable(fn ($query) =>
+            $query->whereHas('document', fn ($d) => $d->where('status', 'active'))
         )
         ->get();
 
@@ -610,7 +602,7 @@ test('whereEloquent can be chained multiple times', function () {
         ->and($results->first()->id)->toBe($chunk1->id);
 });
 
-test('whereEloquent works with standard where constraints', function () {
+test('whereSearchable works with standard where constraints', function () {
     $userId = 'user-123';
 
     $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
@@ -620,12 +612,10 @@ test('whereEloquent works with standard where constraints', function () {
     $doc2 = Document::factory()->create(['user_id' => 'user-456', 'status' => 'active']);
     $chunk3 = DocumentChunk::factory()->create(['document_id' => $doc2->id, 'chunk_number' => 1]);
 
-    // Combine whereEloquent with standard where through embeddable
+    // Combine whereSearchable with standard where
     $results = DocumentChunk::search('test')
-        ->whereEloquent(fn ($q) =>
-            $q->whereHas('embeddable', function ($chunk) use ($userId) {
-                $chunk->whereHas('document', fn ($d) => $d->where('user_id', $userId));
-            })
+        ->whereSearchable(fn ($query) =>
+            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
         ->where('chunk_number', 1)
         ->get();
@@ -635,23 +625,21 @@ test('whereEloquent works with standard where constraints', function () {
         ->and($results->first()->id)->toBe($chunk1->id);
 });
 
-test('whereEloquent returns empty results when no matches', function () {
+test('whereSearchable returns empty results when no matches', function () {
     $doc1 = Document::factory()->create(['user_id' => 'user-123', 'status' => 'active']);
     $chunk1 = DocumentChunk::factory()->create(['document_id' => $doc1->id]);
 
-    // Search for non-existent user through embeddable
+    // Search for non-existent user
     $results = DocumentChunk::search('test')
-        ->whereEloquent(fn ($q) =>
-            $q->whereHas('embeddable', function ($chunk) {
-                $chunk->whereHas('document', fn ($d) => $d->where('user_id', 'non-existent'));
-            })
+        ->whereSearchable(fn ($query) =>
+            $query->whereHas('document', fn ($d) => $d->where('user_id', 'non-existent'))
         )
         ->get();
 
     expect($results)->toHaveCount(0);
 });
 
-test('whereEloquent works with joins', function () {
+test('whereSearchable works with joins', function () {
     $userId = 'user-123';
 
     $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
@@ -660,14 +648,13 @@ test('whereEloquent works with joins', function () {
     $chunk1 = DocumentChunk::factory()->create(['document_id' => $doc1->id]);
     $chunk2 = DocumentChunk::factory()->create(['document_id' => $doc2->id]);
 
-    // Use whereEloquent with a join - need to join through document_chunks first, then documents
+    // Use whereSearchable with a join to documents table
     $results = DocumentChunk::search('test')
-        ->whereEloquent(function ($q) use ($userId) {
-            $q->join('document_chunks', 'fake_embeddings.embeddable_id', '=', 'document_chunks.id')
-              ->join('documents', 'document_chunks.document_id', '=', 'documents.id')
-              ->where('documents.user_id', $userId)
-              ->where('documents.status', 'active');
-        })
+        ->whereSearchable(fn ($query) =>
+            $query->join('documents', 'document_chunks.document_id', '=', 'documents.id')
+                ->where('documents.user_id', $userId)
+                ->where('documents.status', 'active')
+        )
         ->get();
 
     expect($results)
@@ -675,7 +662,7 @@ test('whereEloquent works with joins', function () {
         ->and($results->first()->id)->toBe($chunk1->id);
 });
 
-test('whereEloquent works with pagination', function () {
+test('whereSearchable works with pagination', function () {
     $userId = 'user-123';
 
     $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
@@ -686,12 +673,10 @@ test('whereEloquent works with pagination', function () {
         $chunks->push(DocumentChunk::factory()->create(['document_id' => $doc1->id]));
     }
 
-    // Test pagination with whereEloquent through embeddable
+    // Test pagination with whereSearchable
     $page1 = DocumentChunk::search('test')
-        ->whereEloquent(fn ($q) =>
-            $q->whereHas('embeddable', function ($chunk) use ($userId) {
-                $chunk->whereHas('document', fn ($d) => $d->where('user_id', $userId));
-            })
+        ->whereSearchable(fn ($query) =>
+            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
         ->paginate(5, page: 1);
 
@@ -700,10 +685,8 @@ test('whereEloquent works with pagination', function () {
         ->and($page1->total())->toBe(10);
 
     $page2 = DocumentChunk::search('test')
-        ->whereEloquent(fn ($q) =>
-            $q->whereHas('embeddable', function ($chunk) use ($userId) {
-                $chunk->whereHas('document', fn ($d) => $d->where('user_id', $userId));
-            })
+        ->whereSearchable(fn ($query) =>
+            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
         ->paginate(5, page: 2);
 
@@ -712,7 +695,7 @@ test('whereEloquent works with pagination', function () {
         ->and($page2->total())->toBe(10);
 });
 
-test('whereEloquent works with cursor', function () {
+test('whereSearchable works with cursor', function () {
     $userId = 'user-123';
 
     $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
@@ -722,10 +705,8 @@ test('whereEloquent works with cursor', function () {
     DocumentChunk::factory()->count(2)->create(['document_id' => $doc2->id]);
 
     $results = DocumentChunk::search('test')
-        ->whereEloquent(fn ($q) =>
-            $q->whereHas('embeddable', function ($chunk) use ($userId) {
-                $chunk->whereHas('document', fn ($d) => $d->where('user_id', $userId));
-            })
+        ->whereSearchable(fn ($query) =>
+            $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
         )
         ->cursor();
 

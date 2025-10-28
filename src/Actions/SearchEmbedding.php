@@ -28,9 +28,9 @@ class SearchEmbedding
             ->forModel($model)
             ->where('embeddable_type', $model->getMorphClass());
 
-        // Apply caller's Eloquent constraints (joins, whereHas, subqueries, etc.)
-        foreach ($builder->options['pgvector_eloquent_wheres'] ?? [] as $apply) {
-            $apply($query);
+        // Apply caller's searchable model constraints (whereHas, subqueries, etc.)
+        foreach ($builder->options['pgvector_searchable_wheres'] ?? [] as $apply) {
+            $query->whereHas('embeddable', $apply);
         }
 
         // Apply __soft_deleted property from the builder

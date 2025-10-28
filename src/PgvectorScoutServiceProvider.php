@@ -36,10 +36,10 @@ class PgvectorScoutServiceProvider extends PackageServiceProvider
             return new PgvectorEngine;
         });
 
-        Builder::macro('whereEloquent', function (Closure $apply) {
+        Builder::macro('whereSearchable', function (Closure $apply) {
             /** @var Builder $this */
-            $this->options['pgvector_eloquent_wheres'] ??= [];
-            $this->options['pgvector_eloquent_wheres'][] = $apply;
+            $this->options['pgvector_searchable_wheres'] ??= [];
+            $this->options['pgvector_searchable_wheres'][] = $apply;
             return $this;
         });
     }
