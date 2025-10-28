@@ -3,8 +3,11 @@
 use BenBjurstrom\PgvectorScout\IndexConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use BenBjurstrom\PgvectorScout\PgvectorEngine;
+use BenBjurstrom\PgvectorScout\Tests\Support\Models\Document;
+use BenBjurstrom\PgvectorScout\Tests\Support\Models\DocumentChunk;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\Review;
 use BenBjurstrom\PgvectorScout\Tests\Support\Models\ReviewSoftDelete;
+use BenBjurstrom\PgvectorScout\Tests\Support\Models\Tag;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +22,19 @@ beforeEach(function () {
 
     // Load the embeddings table migration
     $migration = include __DIR__.'/Support/Migrations/2024_11_06_000000_create_embeddings_table.php';
+    $migration->up();
+
+    // Load the documents and related tables for whereEloquent testing
+    $migration = include __DIR__.'/Support/Migrations/2024_11_07_000000_create_documents_table.php';
+    $migration->up();
+
+    $migration = include __DIR__.'/Support/Migrations/2024_11_07_000001_create_document_chunks_table.php';
+    $migration->up();
+
+    $migration = include __DIR__.'/Support/Migrations/2024_11_07_000002_create_tags_table.php';
+    $migration->up();
+
+    $migration = include __DIR__.'/Support/Migrations/2024_11_07_000003_create_document_tag_pivot_table.php';
     $migration->up();
 });
 
@@ -492,4 +508,199 @@ test('search method supports whereNotIn constraints', function () {
     expect($results)
         ->toHaveCount(2)
         ->and($results->pluck('score')->all())->toMatchArray([3, 2]);
+});
+
+test('whereSearchable can filter by parent relationship with whereHas', function () {
+    $userId = 'user-123';
+
+    // Create documents with different users and statuses
+    $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
+    $doc2 = Document::factory()->create(['user_id' => 'user-456', 'status' => 'active']);
+    $doc3 = Document::factory()->create(['user_id' => $userId, 'status' => 'draft']);
+
+    // Create chunks for each document
+    $chunk1 = DocumentChunk::factory()->create(['document_id' => $doc1->id, 'content' => 'meeting notes']);
+    $chunk2 = DocumentChunk::factory()->create(['document_id' => $doc2->id, 'content' => 'meeting notes']);
+    $chunk3 = DocumentChunk::factory()->create(['document_id' => $doc3->id, 'content' => 'meeting notes']);
+
+    // Search with whereSearchable filtering
+    $results = DocumentChunk::search('test')
+        ->whereSearchable(fn ($query) => $query->whereHas('document', function ($d) use ($userId) {
+            $d->where('status', 'active')
+                ->where('user_id', $userId);
+        })
+        )
+        ->get();
+
+    expect($results)
+        ->toHaveCount(1)
+        ->and($results->first()->id)->toBe($chunk1->id);
+});
+
+test('whereSearchable can filter by nested relationships with tags', function () {
+    $userId = 'user-123';
+
+    // Create tags
+    $meetingTag = Tag::factory()->create(['slug' => 'meeting-notes']);
+    $reportTag = Tag::factory()->create(['slug' => 'report']);
+
+    // Create documents with different configurations
+    $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
+    $doc1->tags()->attach($meetingTag);
+
+    $doc2 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
+    $doc2->tags()->attach($reportTag);
+
+    $doc3 = Document::factory()->create(['user_id' => 'user-456', 'status' => 'active']);
+    $doc3->tags()->attach($meetingTag);
+
+    // Create chunks
+    $chunk1 = DocumentChunk::factory()->create(['document_id' => $doc1->id]);
+    $chunk2 = DocumentChunk::factory()->create(['document_id' => $doc2->id]);
+    $chunk3 = DocumentChunk::factory()->create(['document_id' => $doc3->id]);
+
+    // Complex whereSearchable with nested relationships
+    $results = DocumentChunk::search('test')
+        ->whereSearchable(fn ($query) => $query->whereHas('document', function ($d) use ($userId) {
+            $d->where('status', 'active')
+                ->where('user_id', $userId)
+                ->whereHas('tags', fn ($t) => $t->where('slug', 'meeting-notes'));
+        })
+        )
+        ->get();
+
+    expect($results)
+        ->toHaveCount(1)
+        ->and($results->first()->id)->toBe($chunk1->id);
+});
+
+test('whereSearchable can be chained multiple times', function () {
+    $userId = 'user-123';
+
+    $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
+    $doc2 = Document::factory()->create(['user_id' => $userId, 'status' => 'draft']);
+    $doc3 = Document::factory()->create(['user_id' => 'user-456', 'status' => 'active']);
+
+    $chunk1 = DocumentChunk::factory()->create(['document_id' => $doc1->id]);
+    $chunk2 = DocumentChunk::factory()->create(['document_id' => $doc2->id]);
+    $chunk3 = DocumentChunk::factory()->create(['document_id' => $doc3->id]);
+
+    // Chain multiple whereSearchable calls
+    $results = DocumentChunk::search('test')
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        )
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('status', 'active'))
+        )
+        ->get();
+
+    expect($results)
+        ->toHaveCount(1)
+        ->and($results->first()->id)->toBe($chunk1->id);
+});
+
+test('whereSearchable works with standard where constraints', function () {
+    $userId = 'user-123';
+
+    $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
+    $chunk1 = DocumentChunk::factory()->create(['document_id' => $doc1->id, 'chunk_number' => 1]);
+    $chunk2 = DocumentChunk::factory()->create(['document_id' => $doc1->id, 'chunk_number' => 2]);
+
+    $doc2 = Document::factory()->create(['user_id' => 'user-456', 'status' => 'active']);
+    $chunk3 = DocumentChunk::factory()->create(['document_id' => $doc2->id, 'chunk_number' => 1]);
+
+    // Combine whereSearchable with standard where
+    $results = DocumentChunk::search('test')
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        )
+        ->where('chunk_number', 1)
+        ->get();
+
+    expect($results)
+        ->toHaveCount(1)
+        ->and($results->first()->id)->toBe($chunk1->id);
+});
+
+test('whereSearchable returns empty results when no matches', function () {
+    $doc1 = Document::factory()->create(['user_id' => 'user-123', 'status' => 'active']);
+    $chunk1 = DocumentChunk::factory()->create(['document_id' => $doc1->id]);
+
+    // Search for non-existent user
+    $results = DocumentChunk::search('test')
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', 'non-existent'))
+        )
+        ->get();
+
+    expect($results)->toHaveCount(0);
+});
+
+test('whereSearchable works with joins', function () {
+    $userId = 'user-123';
+
+    $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
+    $doc2 = Document::factory()->create(['user_id' => 'user-456', 'status' => 'active']);
+
+    $chunk1 = DocumentChunk::factory()->create(['document_id' => $doc1->id]);
+    $chunk2 = DocumentChunk::factory()->create(['document_id' => $doc2->id]);
+
+    // Use whereSearchable with a join to documents table
+    $results = DocumentChunk::search('test')
+        ->whereSearchable(fn ($query) => $query->join('documents', 'document_chunks.document_id', '=', 'documents.id')
+            ->where('documents.user_id', $userId)
+            ->where('documents.status', 'active')
+        )
+        ->get();
+
+    expect($results)
+        ->toHaveCount(1)
+        ->and($results->first()->id)->toBe($chunk1->id);
+});
+
+test('whereSearchable works with pagination', function () {
+    $userId = 'user-123';
+
+    $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
+
+    // Create multiple chunks
+    $chunks = collect();
+    for ($i = 1; $i <= 10; $i++) {
+        $chunks->push(DocumentChunk::factory()->create(['document_id' => $doc1->id]));
+    }
+
+    // Test pagination with whereSearchable
+    $page1 = DocumentChunk::search('test')
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        )
+        ->paginate(5, page: 1);
+
+    expect($page1)
+        ->toHaveCount(5)
+        ->and($page1->total())->toBe(10);
+
+    $page2 = DocumentChunk::search('test')
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        )
+        ->paginate(5, page: 2);
+
+    expect($page2)
+        ->toHaveCount(5)
+        ->and($page2->total())->toBe(10);
+});
+
+test('whereSearchable works with cursor', function () {
+    $userId = 'user-123';
+
+    $doc1 = Document::factory()->create(['user_id' => $userId, 'status' => 'active']);
+    $doc2 = Document::factory()->create(['user_id' => 'user-456', 'status' => 'active']);
+
+    DocumentChunk::factory()->count(3)->create(['document_id' => $doc1->id]);
+    DocumentChunk::factory()->count(2)->create(['document_id' => $doc2->id]);
+
+    $results = DocumentChunk::search('test')
+        ->whereSearchable(fn ($query) => $query->whereHas('document', fn ($d) => $d->where('user_id', $userId))
+        )
+        ->cursor();
+
+    expect($results)
+        ->toBeInstanceOf(LazyCollection::class)
+        ->and($results->count())->toBe(3);
 });

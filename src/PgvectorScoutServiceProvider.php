@@ -2,6 +2,8 @@
 
 namespace BenBjurstrom\PgvectorScout;
 
+use Closure;
+use Laravel\Scout\Builder;
 use Laravel\Scout\EngineManager;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
@@ -32,6 +34,14 @@ class PgvectorScoutServiceProvider extends PackageServiceProvider
 
         resolve(EngineManager::class)->extend('pgvector', function () {
             return new PgvectorEngine;
+        });
+
+        Builder::macro('whereSearchable', function (Closure $apply) {
+            /** @var Builder<\Illuminate\Database\Eloquent\Model> $this */
+            $this->options['pgvector_searchable_wheres'] ??= [];
+            $this->options['pgvector_searchable_wheres'][] = $apply;
+
+            return $this;
         });
     }
 }

@@ -28,6 +28,11 @@ class SearchEmbedding
             ->forModel($model)
             ->where('embeddable_type', $model->getMorphClass());
 
+        // Apply caller's searchable model constraints (whereHas, subqueries, etc.)
+        foreach ($builder->options['pgvector_searchable_wheres'] ?? [] as $apply) {
+            $query->whereHas('embeddable', $apply);
+        }
+
         // Apply __soft_deleted property from the builder
         if (isset($builder->wheres['__soft_deleted'])) {
             $query->where('__soft_deleted', $builder->wheres['__soft_deleted']);

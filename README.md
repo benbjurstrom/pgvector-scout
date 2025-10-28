@@ -158,6 +158,22 @@ $results->first()->embedding->neighbor_distance; // 0.26834 (example value)
 
 The larger the distance the less similar the result is to the input.
 
+### Advanced filtering with whereSearchable:
+You can use the `whereSearchable()` macro to apply Eloquent query constraints before the vector similarity search. This improves efficiency by filtering the dataset before computing expensive vector distances.
+
+```php
+use App\Models\DocumentChunk;
+
+$results = DocumentChunk::search('payment terms')
+    ->whereSearchable(fn ($query) =>
+        $query->whereHas('document', fn ($doc) =>
+            $doc->where('client_id', $clientId)
+                ->where('type', 'contract')
+        )
+    )
+    ->get();
+```
+
 ## 🛠Using custom handlers
 By default this package uses OpenAI to generate embeddings. To do this it uses the [OpenAiHandler](https://github.com/benbjurstrom/pgvector-scout/blob/main/src/Handlers/OpenAiHandler.php) class paired with the openai index found in the packages [config file](https://github.com/benbjurstrom/pgvector-scout/blob/main/config/pgvector-scout.php).
 
