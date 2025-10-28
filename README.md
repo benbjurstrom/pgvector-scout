@@ -158,6 +158,41 @@ $results->first()->embedding->neighbor_distance; // 0.26834 (example value)
 
 The larger the distance the less similar the result is to the input.
 
+### Advanced filtering with whereEloquent:
+For complex filtering scenarios, you can use `whereEloquent()` to apply Eloquent query constraints before the vector similarity search. This improves efficiency by filtering the dataset before computing expensive vector distances, ensuring only relevant records are considered.
+
+```php
+use App\Models\DocumentChunk;
+
+// Search only within active documents
+$results = DocumentChunk::search('meeting notes')
+    ->whereEloquent(fn ($query) =>
+        $query->whereHas('embeddable', function ($chunk) {
+            $chunk->whereHas('document', fn ($doc) => $doc->where('status', 'active'));
+        })
+    )
+    ->get();
+```
+
+You can also apply more complex filters including multiple relationships and conditions:
+
+```php
+// Filter by user, status, and tags
+$results = DocumentChunk::search('project updates')
+    ->whereEloquent(fn ($query) =>
+        $query->whereHas('embeddable', function ($chunk) use ($userId) {
+            $chunk->whereHas('document', function ($doc) use ($userId) {
+                $doc->where('status', 'active')
+                    ->where('user_id', $userId)
+                    ->whereHas('tags', fn ($tag) => $tag->where('slug', 'meetings'));
+            });
+        })
+    )
+    ->paginate(20);
+```
+
+**Note**: The `whereEloquent()` filters are applied before the nearest neighbor calculation, ensuring PostgreSQL filters the dataset first, then performs vector similarity comparisons only on the filtered results.
+
 ## 🛠Using custom handlers
 By default this package uses OpenAI to generate embeddings. To do this it uses the [OpenAiHandler](https://github.com/benbjurstrom/pgvector-scout/blob/main/src/Handlers/OpenAiHandler.php) class paired with the openai index found in the packages [config file](https://github.com/benbjurstrom/pgvector-scout/blob/main/config/pgvector-scout.php).
 

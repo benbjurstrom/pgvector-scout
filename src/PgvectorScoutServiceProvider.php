@@ -2,10 +2,12 @@
 
 namespace BenBjurstrom\PgvectorScout;
 
+use Closure;
 use Laravel\Scout\EngineManager;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Laravel\Scout\Builder;
 
 class PgvectorScoutServiceProvider extends PackageServiceProvider
 {
@@ -32,6 +34,13 @@ class PgvectorScoutServiceProvider extends PackageServiceProvider
 
         resolve(EngineManager::class)->extend('pgvector', function () {
             return new PgvectorEngine;
+        });
+
+        Builder::macro('whereEloquent', function (Closure $apply) {
+            /** @var Builder $this */
+            $this->options['pgvector_eloquent_wheres'] ??= [];
+            $this->options['pgvector_eloquent_wheres'][] = $apply;
+            return $this;
         });
     }
 }
