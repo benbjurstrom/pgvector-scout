@@ -66,6 +66,27 @@ test('update method calls CreateEmbedding for each model', function () {
     expect(embedding()->count())->toBe(2);
 });
 
+test('updating a model updates its embedding', function () {
+    // Create a test model
+    $review = Review::factory()->create();
+
+    // Get the original embedding
+    $originalEmbedding = $review->embedding;
+    expect($originalEmbedding)->not->toBeNull();
+    $originalHash = $originalEmbedding->content_hash;
+
+    // Update the model's text field
+    $review->text = 'Updated content that is different';
+    $review->save();
+
+    // Refresh the review to get the latest embedding relationship
+    $review->refresh();
+    $updatedEmbedding = $review->embedding;
+
+    // Verify the embedding was updated (content_hash should change)
+    expect($updatedEmbedding->content_hash)->not->toBe($originalHash);
+});
+
 test('search method can filter by model properties', function () {
     // Create test models with different scores
     $review1 = Review::factory()->create(['score' => 5]);

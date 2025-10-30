@@ -2,6 +2,7 @@
 
 namespace BenBjurstrom\PgvectorScout\Actions;
 
+use BenBjurstrom\PgvectorScout\Events\EmbeddingSaved;
 use BenBjurstrom\PgvectorScout\IndexConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Model;
@@ -126,7 +127,7 @@ class CreateEmbedding
             $attributes['__soft_deleted'] = $model->trashed();
         }
 
-        return (new Embedding)
+        $embedding = (new Embedding)
             ->forModel($model)
             ->updateOrCreate(
                 [
@@ -135,5 +136,14 @@ class CreateEmbedding
                 ],
                 $attributes
             );
+
+        EmbeddingSaved::dispatch(
+            get_class($model),
+            $model->getKey(),
+            $config->handler,
+            $embedding->wasRecentlyCreated
+        );
+
+        return $embedding;
     }
 }
