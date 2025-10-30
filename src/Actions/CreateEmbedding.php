@@ -6,7 +6,6 @@ use BenBjurstrom\PgvectorScout\Events\EmbeddingSaved;
 use BenBjurstrom\PgvectorScout\IndexConfig;
 use BenBjurstrom\PgvectorScout\Models\Embedding;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Pgvector\Laravel\Vector;
 
@@ -110,12 +109,6 @@ class CreateEmbedding
         Vector $vector,
         IndexConfig $config
     ): Embedding {
-        Log::info('Updating embedding', [
-            'id' => $model->getKey(),
-            'model' => get_class($model),
-            'embedding_model' => $config->model,
-        ]);
-
         $attributes = [
             'embedding_model' => $config->model,
             'content_hash' => $contentHash,

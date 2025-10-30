@@ -133,6 +133,38 @@ If you want to manually generate embeddings for existing models you can use the 
 artisan scout:import "App\Models\YourModel"
 ```
 
+### Listen for embedding events:
+The package dispatches an `EmbeddingSaved` event whenever an embedding is created or updated. You can listen for this event to monitor embedding operations:
+
+```php
+use BenBjurstrom\PgvectorScout\Events\EmbeddingSaved;
+
+class LogEmbeddingSaved
+{
+    public function handle(EmbeddingSaved $event): void
+    {
+        $action = $event->wasRecentlyCreated ? 'created' : 'updated';
+
+        Log::info("Embedding {$action}", [
+            'model' => $event->modelName,
+            'id' => $event->modelId,
+            'handler' => $event->handler,
+        ]);
+    }
+}
+```
+
+Register the listener in your `EventServiceProvider`:
+```php
+use BenBjurstrom\PgvectorScout\Events\EmbeddingSaved;
+
+protected $listen = [
+    EmbeddingSaved::class => [
+        LogEmbeddingSaved::class,
+    ],
+];
+```
+
 ### Search using vector similarity:
 You can use the typical Scout syntax to search your models. For example:
 

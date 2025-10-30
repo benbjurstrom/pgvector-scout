@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\LazyCollection;
 use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine;
@@ -29,11 +28,6 @@ class PgvectorEngine extends Engine
         if ($models->isEmpty()) {
             return;
         }
-
-        Log::info('Updating embeddings', [
-            'count' => $models->count(),
-            'model' => get_class($models->first()),
-        ]);
 
         $config = IndexConfig::fromModel($models->first());
         $models->each(function (Model $model) use ($config) {
